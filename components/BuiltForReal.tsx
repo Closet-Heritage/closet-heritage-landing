@@ -18,7 +18,7 @@ export default function BuiltForReal() {
   return (
     <section className="py-8 md:py-12">
       <div className="max-w-[1248px] mx-auto px-6 lg:px-12">
-        <div className="bg-section-warm rounded-[32px] pt-16 md:pt-24">
+        <div className="bg-section-warm rounded-[32px] py-10 md:py-14">
           {/* Text content */}
           <div className="px-8 md:px-12 pb-12">
             <h2 className="font-heading text-3xl md:text-4xl lg:text-[44px] font-semibold text-foreground leading-tight">
@@ -40,7 +40,7 @@ export default function BuiltForReal() {
           </div>
 
           {/* Gallery */}
-          <div className="px-8 md:px-12">
+          <div className="px-8 md:px-12 pb-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {gallery.map((img, i) => (
                 <div
