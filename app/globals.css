@@ -1,26 +1,108 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-surface: var(--surface);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-warm-accent: var(--warm-accent);
+
+  --font-heading: var(--font-playfair);
+  --font-body: var(--font-fira-code);
+  --font-sans: var(--font-fira-code);
+  --font-mono: var(--font-fira-code);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.5rem;
+
+  /* Closet Heritage warm palette */
+  --background: #FFF9F4;
+  --foreground: #291A0C;
+  --card: #FFF9F4;
+  --card-foreground: #291A0C;
+  --popover: #FFF9F4;
+  --popover-foreground: #291A0C;
+  --primary: #291A0C;
+  --primary-foreground: #FFF9F4;
+  --secondary: #F5EDE7;
+  --secondary-foreground: #291A0C;
+  --muted: #F5EDE7;
+  --muted-foreground: #817469;
+  --accent: #C4A882;
+  --accent-foreground: #291A0C;
+  --destructive: #EF4444;
+  --border: #E5DDD7;
+  --input: #E5DDD7;
+  --ring: #C4A882;
+
+  /* Custom tokens */
+  --surface: #FFF9F4;
+  --surface-secondary: #F5EDE7;
+  --warm-accent: #C4A882;
+  --btn-primary: #F5E9DA;
+  --btn-primary-text: #291A0C;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Accordion +/- icon toggle */
+.accordion-trigger[data-state="open"] .plus-icon {
+  display: none;
+}
+.accordion-trigger[data-state="open"] .minus-icon {
+  display: block;
+}
+.accordion-trigger[data-state="closed"] .minus-icon {
+  display: none;
+}
+.accordion-trigger[data-state="closed"] .plus-icon {
+  display: block;
+}
+
+/* Hide scrollbar for gallery */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
