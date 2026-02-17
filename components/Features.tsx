@@ -1,4 +1,8 @@
+"use client";
+
 import Image from "next/image";
+import Reveal from "./Reveal";
+import { StaggerContainer, StaggerItem } from "./Reveal";
 
 const features = [
   {
@@ -27,21 +31,21 @@ export default function Features() {
   return (
     <section id="features" className="py-16 md:py-24">
       <div className="max-w-[1248px] mx-auto px-6 lg:px-12">
-        <div className="text-center mb-12 md:mb-16">
-          <h2 className="font-heading text-3xl md:text-4xl lg:text-[44px] font-semibold text-foreground leading-tight">
-            Designed to make getting
-            <br />
-            dressed effortless
-          </h2>
-          <p className="mt-4 text-sm md:text-base text-muted-foreground max-w-lg mx-auto">
-            We help you plan outfits that fit your day, your mood, and your
-            wardrobe.
-          </p>
-        </div>
+        <Reveal>
+          <div className="text-center mb-12 md:mb-16">
+            <h2 className="font-heading text-2xl md:text-3xl lg:text-[44px] font-semibold text-foreground leading-tight">
+              Designed to make getting dressed effortless
+            </h2>
+            <p className="mt-4 text-sm md:text-base text-muted-foreground max-w-lg mx-auto">
+              We help you plan outfits that fit your day, your mood, and your
+              wardrobe.
+            </p>
+          </div>
+        </Reveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12">
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12" staggerDelay={0.12}>
           {features.map((feature, i) => (
-            <div key={i}>
+            <StaggerItem key={i}>
               {/* Phone screenshot card — image anchored to bottom */}
               <div className="rounded-2xl overflow-hidden bg-card-dark relative aspect-[5/4]">
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] aspect-[9/19]">
@@ -62,9 +66,9 @@ export default function Features() {
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                 {feature.description}
               </p>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
       </div>
     </section>
   );

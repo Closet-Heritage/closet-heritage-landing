@@ -1,5 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import WaitlistForm from "./WaitlistForm";
+import Reveal from "./Reveal";
+import { StaggerContainer, StaggerItem } from "./Reveal";
 
 const bullets = [
   "Designed for everyday wear",
@@ -21,42 +25,47 @@ export default function BuiltForReal() {
         <div className="bg-section-warm rounded-[32px] py-10 md:py-14">
           {/* Text content */}
           <div className="px-8 md:px-12 pb-12">
-            <h2 className="font-heading text-3xl md:text-4xl lg:text-[44px] font-semibold text-foreground leading-tight">
-              Built for real people, real wardrobes.
-            </h2>
+            <Reveal>
+              <h2 className="font-heading text-3xl md:text-4xl lg:text-[44px] font-semibold text-foreground leading-tight">
+                Built for real people, real wardrobes.
+              </h2>
+            </Reveal>
 
-            <ul className="mt-6 space-y-2">
-              {bullets.map((bullet, i) => (
-                <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-foreground flex-shrink-0" />
-                  {bullet}
-                </li>
-              ))}
-            </ul>
+            <Reveal delay={0.1}>
+              <ul className="mt-6 space-y-2">
+                {bullets.map((bullet, i) => (
+                  <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <span className="w-1.5 h-1.5 rounded-full bg-foreground flex-shrink-0" />
+                    {bullet}
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
 
-            <div className="mt-8">
-              <WaitlistForm />
-            </div>
+            <Reveal delay={0.2}>
+              <div className="mt-8">
+                <WaitlistForm />
+              </div>
+            </Reveal>
           </div>
 
           {/* Gallery */}
           <div className="px-8 md:px-12 pb-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-4" staggerDelay={0.1}>
               {gallery.map((img, i) => (
-                <div
-                  key={i}
-                  className="relative aspect-[3/4] overflow-hidden rounded-xl"
-                >
-                  <Image
-                    src={img.src}
-                    alt={img.alt}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                  />
-                </div>
+                <StaggerItem key={i}>
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-xl">
+                    <Image
+                      src={img.src}
+                      alt={img.alt}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                    />
+                  </div>
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerContainer>
           </div>
         </div>
       </div>

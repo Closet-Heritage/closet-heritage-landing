@@ -6,6 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import Reveal from "./Reveal";
 
 const faqs = [
   {
@@ -54,22 +55,26 @@ export default function FAQ() {
   return (
     <section id="faq" className="py-16 md:py-24">
       <div className="max-w-[1248px] mx-auto px-6 lg:px-12">
-        <h2 className="font-heading text-3xl md:text-4xl lg:text-[44px] font-semibold text-foreground mb-8">
-          Frequently Asked Questions
-        </h2>
+        <Reveal>
+          <h2 className="font-heading text-3xl md:text-4xl lg:text-[44px] font-semibold text-foreground mb-8">
+            Frequently Asked Questions
+          </h2>
+        </Reveal>
 
-        <Accordion type="single" collapsible defaultValue="item-0">
-          {faqs.map((faq, i) => (
-            <AccordionItem key={i} value={`item-${i}`} className="border-border">
-              <AccordionTrigger className="text-sm md:text-base font-medium text-foreground hover:no-underline py-5">
-                {faq.question}
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-5">
-                {faq.answer}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        <Reveal delay={0.15}>
+          <Accordion type="single" collapsible defaultValue="item-0">
+            {faqs.map((faq, i) => (
+              <AccordionItem key={i} value={`item-${i}`} className="border-border">
+                <AccordionTrigger className="text-sm md:text-base font-medium text-foreground hover:no-underline py-5">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-5">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </Reveal>
       </div>
     </section>
   );
