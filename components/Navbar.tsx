@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import WaitlistForm from "./WaitlistForm";
 
 const navLinks = [
   { label: "How it works", href: "#how-it-works" },
@@ -40,9 +41,7 @@ export default function Navbar() {
           <a href="#footer" className="text-sm text-black hover:text-foreground transition-colors">
             Talk to us
           </a>
-          <Button className="rounded-none text-sm bg-btn-cta text-foreground hover:bg-btn-cta-hover border border-border" asChild>
-            <a href="#hero">Join the beta</a>
-          </Button>
+          <WaitlistForm className="text-sm" label="Join the beta" />
         </div>
 
         {/* Mobile hamburger */}
@@ -77,9 +76,7 @@ export default function Navbar() {
           >
             Talk to us
           </a>
-          <Button variant="outline" className="rounded-none text-sm w-full" asChild>
-            <a href="#hero" onClick={() => setMenuOpen(false)}>Join the beta</a>
-          </Button>
+          <WaitlistForm className="text-sm w-full" label="Join the beta" />
         </div>
       )}
     </nav>

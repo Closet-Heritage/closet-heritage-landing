@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const { name, email } = await request.json();
 
     if (!email || typeof email !== "string") {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
@@ -28,7 +28,10 @@ export async function POST(request: Request) {
 
     const { error } = await supabase
       .from("waitlist_emails")
-      .insert({ email: email.toLowerCase().trim() });
+      .insert({
+        name: typeof name === "string" ? name.trim() : null,
+        email: email.toLowerCase().trim(),
+      });
 
     if (error) {
       if (error.code === "23505") {

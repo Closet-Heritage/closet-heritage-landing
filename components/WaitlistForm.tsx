@@ -14,11 +14,14 @@ import {
 export default function WaitlistForm({
   className = "",
   variant = "dark",
+  label = "Get Early Access",
 }: {
   className?: string;
   variant?: "dark" | "light";
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -32,13 +35,14 @@ export default function WaitlistForm({
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ name: name.trim(), email }),
       });
       const data = await res.json();
 
       if (res.ok) {
         setStatus("success");
         setMessage("You're on the list!");
+        setName("");
         setEmail("");
       } else {
         setStatus("error");
@@ -66,7 +70,7 @@ export default function WaitlistForm({
   return (
     <>
       <Button className={`${buttonClass} ${className}`} onClick={() => setOpen(true)}>
-        Get Early Access
+        {label}
       </Button>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -74,7 +78,7 @@ export default function WaitlistForm({
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl">Get Early Access</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Enter your email and we&apos;ll let you know when Closet Heritage is ready.
+              Enter your details and we&apos;ll let you know when Closet Heritage is ready.
             </DialogDescription>
           </DialogHeader>
 
@@ -88,12 +92,20 @@ export default function WaitlistForm({
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
               <Input
+                type="text"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                autoFocus
+                className="rounded-none h-11"
+              />
+              <Input
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                autoFocus
                 className="rounded-none h-11"
               />
               {status === "error" && (
