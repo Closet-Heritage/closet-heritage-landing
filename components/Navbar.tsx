@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import WaitlistForm from "./WaitlistForm";
 
 const navLinks = [
-  { label: "How it works", href: "#how-it-works" },
-  { label: "Benefits", href: "#features" },
-  { label: "FAQ", href: "#faq" },
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "Benefits", href: "/#features" },
+  { label: "FAQ", href: "/#faq" },
   { label: "Team", href: "/team" },
 ];
 
@@ -19,7 +19,7 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
       <div className="max-w-[1248px] mx-auto px-6 lg:px-12 flex items-center justify-between h-16">
         {/* Logo */}
-        <a href="#">
+        <a href="/">
           <Image src="/images/logo.png" alt="Closet Heritage" width={40} height={40} />
         </a>
 
@@ -38,7 +38,7 @@ export default function Navbar() {
 
         {/* Desktop CTAs */}
         <div className="hidden md:flex items-center gap-4">
-          <a href="#footer" className="text-sm text-black hover:text-foreground transition-colors">
+          <a href="/#footer" className="text-sm text-black hover:text-foreground transition-colors">
             Talk to us
           </a>
           <WaitlistForm className="text-sm" label="Join the beta" />
@@ -70,7 +70,7 @@ export default function Navbar() {
             </a>
           ))}
           <a
-            href="#footer"
+            href="/#footer"
             className="block text-sm text-black hover:text-foreground"
             onClick={() => setMenuOpen(false)}
           >
