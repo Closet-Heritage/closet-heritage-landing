@@ -40,7 +40,7 @@ export default function Navbar() {
           <a href="#footer" className="text-sm text-black hover:text-foreground transition-colors">
             Talk to us
           </a>
-          <Button className="rounded-none text-sm bg-[#F5E9DA] text-foreground hover:bg-[#EDE0D0] border border-border" asChild>
+          <Button className="rounded-none text-sm bg-btn-cta text-foreground hover:bg-btn-cta-hover border border-border" asChild>
             <a href="#hero">Join the beta</a>
           </Button>
         </div>

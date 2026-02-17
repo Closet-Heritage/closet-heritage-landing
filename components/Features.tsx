@@ -43,7 +43,7 @@ export default function Features() {
           {features.map((feature, i) => (
             <div key={i}>
               {/* Phone screenshot card — image anchored to bottom */}
-              <div className="rounded-2xl overflow-hidden bg-[#1A1210] relative aspect-[5/4]">
+              <div className="rounded-2xl overflow-hidden bg-card-dark relative aspect-[5/4]">
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] aspect-[9/19]">
                   <Image
                     src={feature.image}

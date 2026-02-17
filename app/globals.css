@@ -27,6 +27,12 @@
   --color-surface: var(--surface);
   --color-surface-secondary: var(--surface-secondary);
   --color-warm-accent: var(--warm-accent);
+  --color-btn-cta: var(--btn-cta);
+  --color-btn-cta-hover: var(--btn-cta-hover);
+  --color-btn-cta-light: var(--btn-cta-light);
+  --color-btn-cta-light-hover: var(--btn-cta-light-hover);
+  --color-card-dark: var(--card-dark);
+  --color-section-warm: var(--section-warm);
 
   --font-heading: var(--font-playfair);
   --font-body: var(--font-fira-code);
@@ -69,6 +75,19 @@
   --warm-accent: #C4A882;
   --btn-primary: #F5E9DA;
   --btn-primary-text: #291A0C;
+
+  /* CTA buttons */
+  --btn-cta: #F5E9DA;
+  --btn-cta-hover: #EDE0D0;
+  --btn-cta-light: #FFF5E7;
+  --btn-cta-light-hover: #F5E9DA;
+
+  /* Dark cards (features, phone containers) */
+  --card-dark: #1A1210;
+
+  /* Section backgrounds */
+  --section-warm: #FFF5E7;
+
 }
 
 html {

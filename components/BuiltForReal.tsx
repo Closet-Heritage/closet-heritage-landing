@@ -16,44 +16,48 @@ const gallery = [
 
 export default function BuiltForReal() {
   return (
-    <section className="bg-[#FFF5E7] pt-16 md:pt-24">
-      {/* Text content */}
-      <div className="max-w-[1248px] mx-auto px-6 lg:px-12 pb-12">
-        <h2 className="font-heading text-3xl md:text-4xl lg:text-[44px] font-semibold text-foreground leading-tight">
-          Built for real people, real wardrobes.
-        </h2>
+    <section className="py-8 md:py-12">
+      <div className="max-w-[1248px] mx-auto px-6 lg:px-12">
+        <div className="bg-section-warm rounded-[32px] pt-16 md:pt-24">
+          {/* Text content */}
+          <div className="px-8 md:px-12 pb-12">
+            <h2 className="font-heading text-3xl md:text-4xl lg:text-[44px] font-semibold text-foreground leading-tight">
+              Built for real people, real wardrobes.
+            </h2>
 
-        <ul className="mt-6 space-y-2">
-          {bullets.map((bullet, i) => (
-            <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="w-1.5 h-1.5 rounded-full bg-foreground flex-shrink-0" />
-              {bullet}
-            </li>
-          ))}
-        </ul>
+            <ul className="mt-6 space-y-2">
+              {bullets.map((bullet, i) => (
+                <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-foreground flex-shrink-0" />
+                  {bullet}
+                </li>
+              ))}
+            </ul>
 
-        <div className="mt-8">
-          <WaitlistForm />
-        </div>
-      </div>
-
-      {/* Gallery — images sit at the bottom edge of the bg */}
-      <div className="overflow-x-auto scrollbar-hide">
-        <div className="flex gap-4 px-6 lg:px-12" style={{ minWidth: "max-content" }}>
-          {gallery.map((img, i) => (
-            <div
-              key={i}
-              className="relative w-[300px] md:w-[380px] lg:w-[440px] aspect-[3/4] overflow-hidden flex-shrink-0"
-            >
-              <Image
-                src={img.src}
-                alt={img.alt}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 300px, (max-width: 1024px) 380px, 440px"
-              />
+            <div className="mt-8">
+              <WaitlistForm />
             </div>
-          ))}
+          </div>
+
+          {/* Gallery */}
+          <div className="px-8 md:px-12">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {gallery.map((img, i) => (
+                <div
+                  key={i}
+                  className="relative aspect-[3/4] overflow-hidden rounded-xl"
+                >
+                  <Image
+                    src={img.src}
+                    alt={img.alt}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>

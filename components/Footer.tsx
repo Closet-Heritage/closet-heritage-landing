@@ -109,7 +109,7 @@ export default function Footer() {
               </div>
               <Button
                 type="submit"
-                className="rounded-none h-12 px-10 bg-[#F5E9DA] text-foreground hover:bg-[#EDE0D0] border-0 w-full sm:w-auto mt-4"
+                className="rounded-none h-12 px-10 bg-btn-cta text-foreground hover:bg-btn-cta-hover border-0 w-full sm:w-auto mt-4"
               >
                 {sent ? "Message sent!" : "Send message"}
               </Button>

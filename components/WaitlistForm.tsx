@@ -60,8 +60,8 @@ export default function WaitlistForm({
 
   const buttonClass =
     variant === "light"
-      ? "rounded-none h-11 px-8 bg-[#FFF5E7] text-foreground hover:bg-[#F5E9DA] border border-border"
-      : "rounded-none h-11 px-8 bg-[#F5E9DA] text-foreground hover:bg-[#EDE0D0] border border-border";
+      ? "rounded-none h-11 px-8 bg-btn-cta-light text-foreground hover:bg-btn-cta-light-hover border border-border"
+      : "rounded-none h-11 px-8 bg-btn-cta text-foreground hover:bg-btn-cta-hover border border-border";
 
   return (
     <>
