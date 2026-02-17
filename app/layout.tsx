@@ -23,6 +23,14 @@ export const metadata: Metadata = {
     description:
       "Digitize your wardrobe, get AI-curated outfits, and try them on virtually.",
     type: "website",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Closet Heritage — Preserve the story your clothes tell",
+      },
+    ],
   },
 };
 
