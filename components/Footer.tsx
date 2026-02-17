@@ -5,13 +5,34 @@ import { Button } from "@/components/ui/button";
 
 export default function Footer() {
   const [formState, setFormState] = useState({ name: "", email: "", message: "" });
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSent(true);
-    setFormState({ name: "", email: "", message: "" });
-    setTimeout(() => setSent(false), 4000);
+    setStatus("loading");
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formState),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        setStatus("success");
+        setFormState({ name: "", email: "", message: "" });
+        setTimeout(() => setStatus("idle"), 4000);
+      } else {
+        setStatus("error");
+        setErrorMsg(data.error || "Something went wrong. Please try again.");
+      }
+    } catch {
+      setStatus("error");
+      setErrorMsg("Something went wrong. Please try again.");
+    }
   }
 
   return (
@@ -107,11 +128,19 @@ export default function Footer() {
                   className="w-full bg-transparent border-0 border-b border-white/40 text-white placeholder:text-white/50 py-3 text-sm outline-none focus:border-white transition-colors"
                 />
               </div>
+              {status === "error" && (
+                <p className="text-sm text-red-300">{errorMsg}</p>
+              )}
               <Button
                 type="submit"
+                disabled={status === "loading"}
                 className="rounded-none h-12 px-10 bg-btn-cta text-foreground hover:bg-btn-cta-hover border-0 w-full sm:w-auto mt-4"
               >
-                {sent ? "Message sent!" : "Send message"}
+                {status === "loading"
+                  ? "Sending..."
+                  : status === "success"
+                    ? "Message sent!"
+                    : "Send message"}
               </Button>
             </form>
           </div>

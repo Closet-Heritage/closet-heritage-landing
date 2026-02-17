@@ -41,9 +41,12 @@ export default function WaitlistForm({
 
       if (res.ok) {
         setStatus("success");
-        setMessage("You're on the list!");
         setName("");
         setEmail("");
+        setTimeout(() => {
+          setOpen(false);
+          setStatus("idle");
+        }, 5000);
       } else {
         setStatus("error");
         setMessage(data.error || "Something went wrong. Please try again.");
@@ -75,21 +78,21 @@ export default function WaitlistForm({
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-md bg-background">
-          <DialogHeader>
-            <DialogTitle className="font-heading text-2xl">Get Early Access</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Enter your details and we&apos;ll let you know when Closet Heritage is ready.
-            </DialogDescription>
-          </DialogHeader>
-
           {status === "success" ? (
-            <div className="py-6 text-center">
-              <p className="text-lg font-medium text-foreground">{message}</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                We&apos;ll be in touch soon.
+            <div className="py-8 text-center">
+              <p className="font-heading text-2xl font-medium text-foreground">You&apos;re on the list!</p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                We&apos;ll notify you as soon as Closet Heritage is ready to test.
               </p>
             </div>
           ) : (
+            <>
+            <DialogHeader>
+              <DialogTitle className="font-heading text-2xl">Get Early Access</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Enter your details and we&apos;ll let you know when Closet Heritage is ready.
+              </DialogDescription>
+            </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
               <Input
                 type="text"
@@ -119,6 +122,7 @@ export default function WaitlistForm({
                 {status === "loading" ? "Joining..." : "Join the waitlist"}
               </Button>
             </form>
+            </>
           )}
         </DialogContent>
       </Dialog>
