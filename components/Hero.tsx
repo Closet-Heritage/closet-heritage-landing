@@ -6,17 +6,11 @@ import Reveal from "./Reveal";
 
 export default function Hero() {
   return (
-    <section id="hero" className="pt-12 md:pt-20">
+    <section id="hero" className="pt-15 md:pt-10">
       <div className="max-w-[928px] mx-auto px-6 text-center">
         <Reveal>
-          <div className="flex justify-center mb-5">
-            <Image
-              src="/images/logo-full.png"
-              alt="Closet Heritage — Preserve the story your clothes tell"
-              width={370}
-              height={186}
-              priority
-            />
+          <div className="inline-block mb-6 border rounded-full px-5 py-1.5 text-sm text-muted-foreground">
+           Preserve the story your clothes tell
           </div>
         </Reveal>
         <Reveal delay={0.1}>
@@ -26,7 +20,7 @@ export default function Hero() {
         </Reveal>
         <Reveal delay={0.2}>
           <p className="mt-6 text-sm md:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Snap your clothes, plan outfits, and get dressed with confidence — every day.
+              With <strong>Closet Heritage</strong>, snap your clothes, plan outfits, and get dressed with confidence — every day.
           </p>
         </Reveal>
         <Reveal delay={0.35}>
