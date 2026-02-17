@@ -15,13 +15,13 @@ const firaCode = Fira_Code({
 });
 
 export const metadata: Metadata = {
-  title: "Closet Heritage — Your AI-Powered Digital Wardrobe",
+  title: "Closet Heritage — Your Smart Digital Wardrobe",
   description:
-    "Digitize your wardrobe, get AI-curated outfits, and try them on virtually. Join the beta for the smartest way to get dressed.",
+    "Digitize your wardrobe with AI, get smart outfit suggestions, and try them on virtually. Join the beta for the smartest way to get dressed.",
   openGraph: {
-    title: "Closet Heritage — Your AI-Powered Digital Wardrobe",
+    title: "Closet Heritage — Your Smart Digital Wardrobe",
     description:
-      "Digitize your wardrobe, get AI-curated outfits, and try them on virtually.",
+      "Digitize your wardrobe with AI, get smart outfit suggestions, and try them on virtually.",
     type: "website",
     images: [
       {

@@ -14,7 +14,7 @@ const features = [
   {
     image: "/images/phone-outfit.png",
     title: "Style Without Stress",
-    description: "Let AI suggest combinations based on your taste.",
+    description: "Let our algorithm suggest combinations based on your taste.",
   },
   {
     image: "/images/phone-planned.png",
