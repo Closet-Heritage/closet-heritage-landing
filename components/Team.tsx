@@ -1,80 +1,95 @@
 import Image from "next/image";
 
-const teamMembers = [
-  {
-    name: "Sombang Patience Nyolengma",
-    image: "/images/team-patience.jpg",
-    role: "CEO & Co-Founder",
-    bio: "Drives the vision behind Closet Heritage — making personal style accessible, intentional, and effortless for everyone.",
-  },
-  {
-    name: "Ryan Tangu Mbun Tangwe",
-    image: "/images/team-ryan.jpg",
-    role: "CTO & Co-Founder",
-    bio: "Architects the AI and engineering behind Closet Heritage — from wardrobe digitization to intelligent outfit planning.",
-  },
-];
-
 export default function Team() {
   return (
-    <section id="team" className="py-12 md:py-16">
+    <section id="team" className="py-16 md:py-24">
       <div className="max-w-[1248px] mx-auto px-6 lg:px-12">
-        {/* Header row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 mb-10">
-          <div>
-            <p className="font-body text-xs uppercase tracking-wider text-muted-foreground mb-3">
-              Who we are
-            </p>
-            <h2 className="font-heading text-2xl md:text-3xl font-semibold text-foreground leading-snug">
-              A small team of designers, builders, and problem-solvers creating
-              meaningful experiences.
-            </h2>
+        {/* Origin story */}
+        <div className="max-w-[800px]">
+          <p className="font-body text-xs uppercase tracking-wider text-muted-foreground mb-4">
+            The people behind Closet Heritage
+          </p>
+          <h2 className="font-heading text-2xl md:text-3xl lg:text-4xl font-semibold text-foreground leading-snug">
+            We noticed people owned more clothes than ever but felt like they had
+            nothing to wear. So we built something to fix that.
+          </h2>
+        </div>
+
+        {/* Founders — alternating layout */}
+        <div className="mt-16 space-y-20 md:space-y-24">
+          {/* Patience — photo left, bio right */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+            <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+              <Image
+                src="/images/team-patience.jpg"
+                alt="Sombang Patience Nyolengma"
+                fill
+                className="object-cover object-top"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+            </div>
+            <div>
+              <p className="font-body text-xs uppercase tracking-wider text-warm-accent mb-2">
+                CEO & Co-Founder
+              </p>
+              <h3 className="font-heading text-2xl md:text-3xl font-semibold text-foreground">
+                Sombang Patience Nyolengma
+              </h3>
+              <p className="mt-4 font-body text-sm md:text-base text-muted-foreground leading-relaxed">
+                Patience saw the disconnect firsthand — overflowing wardrobes,
+                yet the daily frustration of having &quot;nothing to wear.&quot;
+                She co-created Closet Heritage to change that relationship.
+              </p>
+              <p className="mt-3 font-body text-sm md:text-base text-muted-foreground leading-relaxed">
+                She leads business strategy, branding, and product direction —
+                making sure every feature is rooted in how people actually think
+                about getting dressed, not how technologists assume they do.
+              </p>
+            </div>
           </div>
-          <div className="md:border-l md:border-border md:pl-6">
-            <p className="font-body text-xs uppercase tracking-wider text-muted-foreground mb-3">
-              Our Mission
-            </p>
-            <p className="font-heading text-lg md:text-xl text-foreground leading-relaxed">
-              To create simple, thoughtful experiences that help people make
-              better choices with confidence.
-            </p>
+
+          {/* Ryan — bio left, photo right */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+            <div className="order-1 md:order-2 relative aspect-[4/5] overflow-hidden bg-muted">
+              <Image
+                src="/images/team-ryan.jpg"
+                alt="Ryan Tangu Mbun Tangwe"
+                fill
+                className="object-cover object-top"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+            </div>
+            <div className="order-2 md:order-1">
+              <p className="font-body text-xs uppercase tracking-wider text-warm-accent mb-2">
+                CTO & Co-Founder
+              </p>
+              <h3 className="font-heading text-2xl md:text-3xl font-semibold text-foreground">
+                Ryan Tangu Mbun Tangwe
+              </h3>
+              <p className="mt-4 font-body text-sm md:text-base text-muted-foreground leading-relaxed">
+                Ryan co-created Closet Heritage and designed the entire system
+                from scratch — the algorithms that plan outfits around your
+                schedule and preferences, the AI that recognizes and tags every
+                item from a single photo, and the virtual try-on that lets you
+                see it all on yourself before getting dressed.
+              </p>
+              <p className="mt-3 font-body text-sm md:text-base text-muted-foreground leading-relaxed">
+                He leads engineering, architecture, and product design — obsessed
+                with making powerful technology feel effortless.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="h-px bg-border mb-10" />
-
-        {/* Team grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {teamMembers.map((member, i) => (
-            <div
-              key={i}
-              className="border border-border/50 overflow-hidden flex flex-col"
-            >
-              {/* Photo */}
-              <div className="relative aspect-[5/6] w-full overflow-hidden bg-muted">
-                <Image
-                  src={member.image}
-                  alt={member.name}
-                  fill
-                  className="object-cover object-top"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
-
-              {/* Info */}
-              <div className="p-5 flex flex-col gap-1.5">
-                <p className="font-body text-xs uppercase tracking-wider text-muted-foreground">
-                  {member.role}
-                </p>
-                <p className="font-heading text-xl md:text-2xl font-semibold text-foreground">
-                  {member.name}
-                </p>
-                <p className="font-body text-sm text-muted-foreground leading-relaxed mt-1">
-                  {member.bio}
-                </p>
-              </div>
-            </div>
-          ))}
+        {/* Mission — centered, after the founders */}
+        <div className="mt-20 md:mt-28 border-t border-border pt-12 text-center max-w-[720px] mx-auto">
+          <p className="font-body text-xs uppercase tracking-wider text-muted-foreground mb-4">
+            Our Mission
+          </p>
+          <p className="font-heading text-xl md:text-2xl font-medium text-foreground leading-relaxed">
+            To create simple, thoughtful experiences that help people make better
+            choices with confidence — starting with the clothes they already own.
+          </p>
         </div>
       </div>
     </section>
