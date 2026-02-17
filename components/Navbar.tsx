@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import WaitlistForm from "./WaitlistForm";
 
 const navLinks = [
@@ -19,9 +19,9 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
       <div className="max-w-[1248px] mx-auto px-6 lg:px-12 flex items-center justify-between h-16">
         {/* Logo */}
-        <a href="/">
-          <Image src="/images/logo.png" alt="Closet Heritage" width={40} height={40} />
-        </a>
+        <Link href="/">
+          <Image src="/images/logo.png" alt="Closet Heritage" width={52} height={52} />
+        </Link>
 
         {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-8">
