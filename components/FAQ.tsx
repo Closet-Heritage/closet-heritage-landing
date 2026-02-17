@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/accordion";
 import Reveal from "./Reveal";
 
-const faqs = [
+const faqs: { question: string; answer: React.ReactNode }[] = [
   {
     question: "How do I add my clothes to the app?",
     answer:
@@ -16,8 +16,9 @@ const faqs = [
   },
   {
     question: "How does outfit planning work?",
-    answer:
-      "Pick the occasion (work, casual, date night, formal, and more), choose a style vibe (classic, bold, afrocentric, relaxed, minimal), set the weather, and Closet Heritage generates outfit combinations from your actual wardrobe. You get multiple suggestions to swipe through, and you can even pin specific items you want to build an outfit around.",
+    answer: (
+      <>Pick the occasion (work, casual, date night, formal, and more), choose a style vibe (classic, bold, afrocentric, relaxed, minimal), set the weather, and <strong>Closet Heritage</strong> generates outfit combinations from your actual wardrobe. You get multiple suggestions to swipe through, and you can even pin specific items you want to build an outfit around.</>
+    ),
   },
   {
     question: "Do I need to upload all my clothes at once?",
@@ -26,8 +27,9 @@ const faqs = [
   },
   {
     question: "Can I see how an outfit looks on me before wearing it?",
-    answer:
-      "Yes — Closet Heritage has a virtual try-on feature. Upload a full-body photo of yourself, and the AI generates a realistic image of you wearing any outfit combination from your wardrobe, so you can see how it looks before getting dressed.",
+    answer: (
+      <>Yes — <strong>Closet Heritage</strong> has a virtual try-on feature. Upload a full-body photo of yourself, and the AI generates a realistic image of you wearing any outfit combination from your wardrobe, so you can see how it looks before getting dressed.</>
+    ),
   },
   {
     question: "What if I don't like a suggested outfit?",
@@ -41,8 +43,9 @@ const faqs = [
   },
   {
     question: "Does Closet Heritage work with African wear?",
-    answer:
-      "Absolutely. Closet Heritage is built for real wardrobes — including African fashion, traditional wear like kaftans, dashikis, and agbadas, and global styles. Our AI recognizes and works with diverse clothing types and cultural styles.",
+    answer: (
+      <>Absolutely. <strong>Closet Heritage</strong> is built for real wardrobes — including African fashion, traditional wear like kaftans, dashikis, and agbadas, and global styles. Our AI recognizes and works with diverse clothing types and cultural styles.</>
+    ),
   },
   {
     question: "Is my data safe?",

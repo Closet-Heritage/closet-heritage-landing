@@ -82,7 +82,7 @@ export default function WaitlistForm({
             <div className="py-8 text-center">
               <p className="font-heading text-2xl font-medium text-foreground">You&apos;re on the list!</p>
               <p className="mt-3 text-sm text-muted-foreground">
-                We&apos;ll notify you as soon as Closet Heritage is ready to test.
+                We&apos;ll notify you as soon as <strong>Closet Heritage</strong> is ready to test.
               </p>
             </div>
           ) : (
@@ -90,7 +90,7 @@ export default function WaitlistForm({
             <DialogHeader>
               <DialogTitle className="font-heading text-2xl">Get Early Access</DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Enter your details and we&apos;ll let you know when Closet Heritage is ready.
+                Enter your details and we&apos;ll let you know when <strong>Closet Heritage</strong> is ready.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">

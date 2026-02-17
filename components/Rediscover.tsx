@@ -15,7 +15,7 @@ export default function Rediscover() {
               Most people wear only a fraction of their wardrobe.
             </h2>
             <p className="mt-5 text-sm md:text-base text-muted-foreground leading-relaxed">
-              Closet Heritage helps you rediscover what you already own, avoid
+              <strong>Closet Heritage</strong> helps you rediscover what you already own, avoid
               repeating the same outfits and dress better without buying more
             </p>
             <div className="mt-8">

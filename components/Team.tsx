@@ -11,7 +11,7 @@ export default function Team() {
         <Reveal>
           <div className="max-w-[800px]">
             <p className="font-body text-xs uppercase tracking-wider text-muted-foreground mb-4">
-              The people behind Closet Heritage
+              The people behind <strong>Closet Heritage</strong>
             </p>
             <h2 className="font-heading text-2xl md:text-3xl lg:text-4xl font-semibold text-foreground leading-snug">
               We noticed people owned more clothes than ever but felt like they had
@@ -45,7 +45,7 @@ export default function Team() {
               <p className="mt-4 font-body text-sm md:text-base text-muted-foreground leading-relaxed">
                 Patience saw the disconnect firsthand — overflowing wardrobes,
                 yet the daily frustration of having &quot;nothing to wear.&quot;
-                She co-created Closet Heritage to change that relationship.
+                She co-created <strong>Closet Heritage</strong> to change that relationship.
               </p>
               <p className="mt-3 font-body text-sm md:text-base text-muted-foreground leading-relaxed">
                 She leads business strategy, branding, and product direction —
@@ -76,7 +76,7 @@ export default function Team() {
                 Ryan Tangu Mbun Tangwe
               </h3>
               <p className="mt-4 font-body text-sm md:text-base text-muted-foreground leading-relaxed">
-                Ryan co-created Closet Heritage and designed the entire system
+                Ryan co-created <strong>Closet Heritage</strong> and designed the entire system
                 from scratch — the algorithms that plan outfits around your
                 schedule and preferences, the AI that recognizes and tags every
                 item from a single photo, and the virtual try-on that lets you

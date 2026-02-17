@@ -9,16 +9,27 @@ export default function Hero() {
     <section id="hero" className="pt-12 md:pt-20">
       <div className="max-w-[928px] mx-auto px-6 text-center">
         <Reveal>
+          <div className="flex justify-center mb-5">
+            <Image
+              src="/images/logo-full.png"
+              alt="Closet Heritage — Preserve the story your clothes tell"
+              width={370}
+              height={186}
+              priority
+            />
+          </div>
+        </Reveal>
+        <Reveal delay={0.1}>
           <h1 className="font-heading text-4xl md:text-5xl lg:text-[56px] leading-[1.15] font-semibold text-foreground">
             Stop repeating outfits. Start styling smarter with what you already own.
           </h1>
         </Reveal>
-        <Reveal delay={0.15}>
+        <Reveal delay={0.2}>
           <p className="mt-6 text-sm md:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
             Snap your clothes, plan outfits, and get dressed with confidence — every day.
           </p>
         </Reveal>
-        <Reveal delay={0.3}>
+        <Reveal delay={0.35}>
           <div className="mt-8 flex justify-center">
             <WaitlistForm />
           </div>
