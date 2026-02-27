@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function BottomBar() {
   return (
@@ -12,13 +13,21 @@ export default function BottomBar() {
           height={155}
         />
 
-        {/* Right: Terms */}
-        <a
-          href="#"
-          className="text-sm font-semibold text-foreground hover:text-foreground/80 transition-colors"
-        >
-          Terms and conditions
-        </a>
+        {/* Right: Legal links */}
+        <div className="flex items-center gap-6">
+          <Link
+            href="/terms"
+            className="text-sm font-semibold text-foreground hover:text-foreground/80 transition-colors"
+          >
+            Terms of Service
+          </Link>
+          <Link
+            href="/privacy"
+            className="text-sm font-semibold text-foreground hover:text-foreground/80 transition-colors"
+          >
+            Privacy Policy
+          </Link>
+        </div>
       </div>
     </div>
   );
