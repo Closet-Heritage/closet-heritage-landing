@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const BACKEND_URL =
@@ -35,11 +35,16 @@ export function CommentSection({ shareCode }: { shareCode: string }) {
   const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [deleteTokens, setDeleteTokens] = useState<Record<string, string>>({});
 
-  // Restore saved name from localStorage
+  // Restore saved name and delete tokens from localStorage
   useEffect(() => {
     const savedName = localStorage.getItem("ch-comment-name");
     if (savedName) setAuthorName(savedName);
+    try {
+      const saved = localStorage.getItem("ch-comment-tokens");
+      if (saved) setDeleteTokens(JSON.parse(saved));
+    } catch { /* ignore */ }
   }, []);
 
   // Fetch comments
@@ -112,10 +117,19 @@ export function CommentSection({ shareCode }: { shareCode: string }) {
       }
 
       const json = await res.json();
+      const { deleteToken: token, ...realComment } = json.data;
+
       // Replace optimistic comment with real one
       setComments((prev) =>
-        prev.map((c) => (c.id === optimisticComment.id ? json.data : c))
+        prev.map((c) => (c.id === optimisticComment.id ? realComment : c))
       );
+
+      // Store delete token for this comment
+      if (token && realComment.id) {
+        const updated = { ...deleteTokens, [realComment.id]: token };
+        setDeleteTokens(updated);
+        localStorage.setItem("ch-comment-tokens", JSON.stringify(updated));
+      }
 
       // Persist name for next time
       localStorage.setItem("ch-comment-name", trimmedName);
@@ -129,6 +143,41 @@ export function CommentSection({ shareCode }: { shareCode: string }) {
       toast.error("Something went wrong. Please try again.");
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleDelete = async (commentId: string) => {
+    const token = deleteTokens[commentId];
+    if (!token) return;
+
+    // Optimistic removal
+    const prev = comments;
+    setComments((c) => c.filter((x) => x.id !== commentId));
+
+    try {
+      const res = await fetch(
+        `${BACKEND_URL}/shared/comments/${commentId}/delete`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deleteToken: token }),
+        }
+      );
+
+      if (!res.ok) {
+        setComments(prev);
+        toast.error("Failed to delete comment");
+        return;
+      }
+
+      // Remove token from storage
+      const { [commentId]: _, ...remaining } = deleteTokens;
+      setDeleteTokens(remaining);
+      localStorage.setItem("ch-comment-tokens", JSON.stringify(remaining));
+      toast.success("Comment deleted");
+    } catch {
+      setComments(prev);
+      toast.error("Failed to delete comment");
     }
   };
 
@@ -202,7 +251,7 @@ export function CommentSection({ shareCode }: { shareCode: string }) {
           {comments.map((comment) => (
             <div
               key={comment.id}
-              className={`flex gap-3 ${comment.id.startsWith("optimistic-") ? "opacity-60" : ""}`}
+              className={`flex gap-3 group ${comment.id.startsWith("optimistic-") ? "opacity-60" : ""}`}
             >
               <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-xs font-heading font-semibold text-foreground">
@@ -222,6 +271,15 @@ export function CommentSection({ shareCode }: { shareCode: string }) {
                   {comment.content}
                 </p>
               </div>
+              {deleteTokens[comment.id] && !comment.id.startsWith("optimistic-") && (
+                <button
+                  onClick={() => handleDelete(comment.id)}
+                  className="self-center p-1.5 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Delete comment"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
             </div>
           ))}
         </div>
