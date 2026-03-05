@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommentSection } from "./CommentSection";
+import { ImageLightbox } from "./ImageLightbox";
 
 // ============================================
 // TYPES
@@ -179,13 +180,12 @@ export default async function SharedOutfitPage({
         {/* Owner info */}
         <div className="flex items-center gap-3 mb-6">
           {data.owner.avatarUrl ? (
-            <Image
+            <ImageLightbox
               src={data.owner.avatarUrl}
               alt={ownerName}
               width={44}
               height={44}
-              className="rounded-full object-cover"
-              style={{ width: 44, height: 44 }}
+              className="w-11 h-11 rounded-full object-cover object-top"
             />
           ) : (
             <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center">
@@ -225,7 +225,7 @@ export default async function SharedOutfitPage({
         {data.outfit.tryonImageUrl && (
           <div className="mb-8 flex justify-center">
             <div className="relative w-full max-w-[400px] aspect-[3/4] rounded-2xl overflow-hidden border border-border">
-              <Image
+              <ImageLightbox
                 src={data.outfit.tryonImageUrl}
                 alt={outfitLabel ?? "Virtual try-on"}
                 fill
@@ -264,7 +264,7 @@ export default async function SharedOutfitPage({
                   className="rounded-xl border border-border overflow-hidden bg-surface-secondary"
                 >
                   <div className="relative aspect-square">
-                    <Image
+                    <ImageLightbox
                       src={item.croppedImageUrl}
                       alt={item.name}
                       fill
