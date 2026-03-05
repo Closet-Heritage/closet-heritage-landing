@@ -26,18 +26,18 @@ interface SharedData {
   };
 }
 
-function getItemsList(items: SharedData["outfit"]["items"]): OutfitItem[] {
-  const slots: (keyof typeof items)[] = [
-    "top",
-    "bottom",
-    "dress",
-    "outerwear",
-    "shoes",
-    "accessory",
-  ];
-  return slots
-    .map((slot) => items[slot])
-    .filter((item): item is OutfitItem => item !== null);
+function getStackItems(items: SharedData["outfit"]["items"]): OutfitItem[] {
+  const isDress = !!items.dress;
+  const result: OutfitItem[] = [];
+  if (isDress) {
+    if (items.dress) result.push(items.dress);
+  } else {
+    if (items.outerwear) result.push(items.outerwear);
+    else if (items.top) result.push(items.top);
+    if (items.bottom) result.push(items.bottom);
+  }
+  if (items.shoes) result.push(items.shoes);
+  return result;
 }
 
 export default async function Image({
@@ -83,11 +83,36 @@ export default async function Image({
     );
   }
 
-  const hasTryon = !!data.outfit.tryonImageUrl;
-  const items = getItemsList(data.outfit.items);
+  // With try-on: show the image top-aligned so face is visible
+  if (data.outfit.tryonImageUrl) {
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            backgroundColor: "#F5EDE7",
+            overflow: "hidden",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={data.outfit.tryonImageUrl}
+            alt=""
+            width={800}
+          />
+        </div>
+      ),
+      { ...size }
+    );
+  }
 
-  // With try-on image: full bleed, top-aligned to show face
-  if (hasTryon) {
+  // Without try-on: vertically stacked items
+  const items = getStackItems(data.outfit.items);
+  if (items.length === 0) {
     return new ImageResponse(
       (
         <div
@@ -98,26 +123,21 @@ export default async function Image({
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: "#F5EDE7",
+            fontSize: 36,
+            color: "#291A0C",
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={data.outfit.tryonImageUrl!}
-            alt=""
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "top center",
-            }}
-          />
+          Shared Outfit
         </div>
       ),
       { ...size }
     );
   }
 
-  // Without try-on: stacked items centered
+  const count = Math.min(items.length, 3);
+  const heights = count === 1 ? [500] : count === 2 ? [300, 230] : [220, 200, 120];
+  const widths = count === 1 ? [500] : count === 2 ? [420, 380] : [400, 360, 280];
+
   return new ImageResponse(
     (
       <div
@@ -125,24 +145,22 @@ export default async function Image({
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "row",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: 24,
           backgroundColor: "#F5EDE7",
-          padding: 40,
+          gap: 4,
         }}
       >
-        {items.slice(0, 4).map((item, i) => (
+        {items.slice(0, 3).map((item, i) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={i}
             src={item.croppedImageUrl}
             alt=""
-            style={{
-              height: items.length <= 2 ? 400 : items.length <= 3 ? 350 : 300,
-              objectFit: "contain",
-            }}
+            width={widths[i]}
+            height={heights[i]}
+            style={{ objectFit: "contain" }}
           />
         ))}
       </div>

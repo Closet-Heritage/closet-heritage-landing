@@ -212,7 +212,7 @@ export default async function SharedOutfitPage({
               {ownerName}
             </p>
             <p className="text-sm font-body text-muted-foreground">
-              Shared an outfit for {formatDate(data.outfit.plannedDate!)}
+              Shared an outfit planned for {formatDate(data.outfit.plannedDate!)}
             </p>
           </div>
         </div>
