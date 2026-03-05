@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommentSection } from "./CommentSection";
 import { ReactionBar } from "./ReactionBar";
+import { CollapsibleItems } from "./CollapsibleItems";
 import { ImageLightbox } from "./ImageLightbox";
 import { OutfitVisualStack } from "./OutfitVisualStack";
 import { FullscreenOverlay } from "./FullscreenOverlay";
@@ -218,18 +219,6 @@ export default async function SharedOutfitPage({
           </div>
         </div>
 
-        {/* Message */}
-        {data.message && (
-          <div className="animate-fade-in-up delay-1 border-l-2 border-warm-accent pl-4 mb-3">
-            <p className="text-base text-[15px] font-body text-foreground leading-relaxed italic">
-              {data.message}
-            </p>
-            <p className="text-xs font-body text-muted-foreground mt-1">
-              — {ownerName}
-            </p>
-          </div>
-        )}
-
         {/* Outfit label */}
         {outfitLabel && (
           <h1 className="animate-fade-in-up delay-1 text-[20px] font-heading font-semibold text-foreground mb-2">
@@ -249,58 +238,58 @@ export default async function SharedOutfitPage({
                 sizes="400px"
                 priority
               />
+              <ReactionBar shareCode={shareCode} />
             </div>
           ) : items.length > 0 && (
-            <div className="w-full max-w-[400px] aspect-[3/4] rounded-2xl overflow-hidden border border-border hover:border-warm-accent transition-colors bg-surface-secondary p-4">
+            <div className="relative w-full max-w-[400px] aspect-[3/4] rounded-2xl overflow-hidden border border-border hover:border-warm-accent transition-colors bg-surface-secondary p-4">
               <FullscreenOverlay>
                 <OutfitVisualStack items={data.outfit.items} />
               </FullscreenOverlay>
+              <ReactionBar shareCode={shareCode} />
             </div>
           )}
         </div>
 
-        {/* Outfit items grid */}
-        {items.length > 0 && (
-          <div className="animate-fade-in-up delay-3 mb-10">
-            <h2 className="text-sm font-body font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-              Items in this outfit
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-xl border border-border overflow-hidden bg-surface-secondary hover:border-warm-accent transition-colors"
-                >
-                  <div className="relative aspect-square">
-                    <ImageLightbox
-                      src={item.croppedImageUrl}
-                      alt={item.name}
-                      fill
-                      className="object-contain p-2"
-                      sizes="200px"
-                    />
-                  </div>
-                  <div className="px-3 py-2 border-t border-border">
-                    <p className="text-xs font-body text-foreground truncate">
-                      {item.name}
-                    </p>
-                    <p className="text-[10px] font-body text-muted-foreground">
-                      {item.subcategory ?? item.topCategory}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Reactions */}
-        <div className="animate-fade-in-up delay-4 mb-6">
-          <ReactionBar shareCode={shareCode} />
-        </div>
+        {/* Collapsible outfit items */}
+        <CollapsibleItems items={items} />
 
         {/* Divider */}
         <div className="animate-fade-in-up delay-4 border-t border-border mb-8" />
+
+        {/* Owner's message */}
+        {data.message && (
+          <div className="animate-fade-in-up delay-5 rounded-xl bg-secondary px-4 py-3 mb-6">
+            <div className="flex items-center gap-2.5 mb-2">
+              {data.owner.avatarUrl ? (
+                <Image
+                  src={data.owner.avatarUrl}
+                  alt={ownerName}
+                  width={28}
+                  height={28}
+                  className="w-7 h-7 rounded-full object-cover object-top"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-background flex items-center justify-center">
+                  <span className="text-[10px] font-heading font-semibold text-foreground">
+                    {ownerName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <span className="text-sm font-body font-semibold text-foreground">
+                {ownerName}
+              </span>
+              <span className="text-[10px] font-body text-muted-foreground">
+                {timeAgo(data.createdAt)}
+              </span>
+              <span className="rounded-full px-2 py-0.5 bg-warm-accent/10 text-[9px] font-body font-semibold text-warm-accent uppercase ml-auto">
+                Owner
+              </span>
+            </div>
+            <p className="text-sm font-body text-foreground break-words leading-relaxed">
+              {data.message}
+            </p>
+          </div>
+        )}
 
         {/* Comments section */}
         <div className="animate-fade-in-up delay-5">

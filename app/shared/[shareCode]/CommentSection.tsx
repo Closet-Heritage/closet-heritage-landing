@@ -29,7 +29,11 @@ function timeAgo(dateStr: string): string {
   });
 }
 
-export function CommentSection({ shareCode }: { shareCode: string }) {
+interface CommentSectionProps {
+  shareCode: string;
+}
+
+export function CommentSection({ shareCode }: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [authorName, setAuthorName] = useState("");
