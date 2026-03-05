@@ -98,9 +98,6 @@ export async function generateMetadata({
       title,
       description,
       type: "article",
-      images: data.outfit.tryonImageUrl
-        ? [{ url: data.outfit.tryonImageUrl, width: 600, height: 800 }]
-        : [],
     },
   };
 }
