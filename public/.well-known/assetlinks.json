@@ -4,7 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.closetheritage.app",
-      "sha256_cert_fingerprints": ["TODO:ADD_YOUR_SHA256_FINGERPRINT"]
+      "sha256_cert_fingerprints": ["FF:76:42:49:E2:DA:53:F3:B4:DD:8F:12:4E:14:FC:10:0F:9D:38:61:76:B4:60:D6:3F:25:EB:34:E0:18:44:85"]
     }
   }
 ]
