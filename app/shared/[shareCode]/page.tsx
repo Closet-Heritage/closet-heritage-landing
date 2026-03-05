@@ -239,7 +239,7 @@ export default async function SharedOutfitPage({
         {/* Outfit visual — try-on image or stacked items */}
         <div className="animate-fade-in-up delay-2 mb-8 flex justify-center">
           {data.outfit.tryonImageUrl ? (
-            <div className="relative w-full max-w-[400px] aspect-[3/4] rounded-2xl overflow-hidden border border-border">
+            <div className="relative w-full max-w-[400px] aspect-[3/4] rounded-2xl overflow-hidden border border-border hover:border-warm-accent transition-colors">
               <ImageLightbox
                 src={data.outfit.tryonImageUrl}
                 alt={outfitLabel}
@@ -250,7 +250,7 @@ export default async function SharedOutfitPage({
               />
             </div>
           ) : items.length > 0 && (
-            <div className="w-full max-w-[400px] aspect-[3/4] rounded-2xl overflow-hidden border border-border bg-surface-secondary p-4">
+            <div className="w-full max-w-[400px] aspect-[3/4] rounded-2xl overflow-hidden border border-border hover:border-warm-accent transition-colors bg-surface-secondary p-4">
               <FullscreenOverlay>
                 <OutfitVisualStack items={data.outfit.items} />
               </FullscreenOverlay>
