@@ -190,7 +190,7 @@ export default async function SharedOutfitPage({
       {/* Main content */}
       <main className="max-w-[800px] mx-auto px-6 py-10">
         {/* Owner info */}
-        <div className="animate-fade-in-up flex items-center gap-4 mb-8">
+        <div className="animate-fade-in-up flex items-center gap-4 mb-4">
           {data.owner.avatarUrl ? (
             <ImageLightbox
               src={data.owner.avatarUrl}
@@ -219,7 +219,7 @@ export default async function SharedOutfitPage({
 
         {/* Message */}
         {data.message && (
-          <div className="animate-fade-in-up delay-1 border-l-2 border-warm-accent pl-4 mb-6">
+          <div className="animate-fade-in-up delay-1 border-l-2 border-warm-accent pl-4 mb-3">
             <p className="text-base text-[15px] font-body text-foreground leading-relaxed italic">
               {data.message}
             </p>
@@ -231,7 +231,7 @@ export default async function SharedOutfitPage({
 
         {/* Outfit label */}
         {outfitLabel && (
-          <h1 className="animate-fade-in-up delay-1 text-[20px] font-heading font-semibold text-foreground mb-3">
+          <h1 className="animate-fade-in-up delay-1 text-[20px] font-heading font-semibold text-foreground mb-2">
             {outfitLabel}
           </h1>
         )}
