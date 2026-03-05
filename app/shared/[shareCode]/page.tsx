@@ -186,6 +186,7 @@ export default async function SharedOutfitPage({
               width={44}
               height={44}
               className="w-11 h-11 rounded-full object-cover object-top"
+              lightboxBg=""
             />
           ) : (
             <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center">
