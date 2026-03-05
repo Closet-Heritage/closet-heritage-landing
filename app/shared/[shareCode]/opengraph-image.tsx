@@ -26,19 +26,24 @@ interface SharedData {
   };
 }
 
-function getStackItems(items: SharedData["outfit"]["items"]): OutfitItem[] {
-  const isDress = !!items.dress;
-  const result: OutfitItem[] = [];
-  if (isDress) {
-    if (items.dress) result.push(items.dress);
-  } else {
-    if (items.outerwear) result.push(items.outerwear);
-    else if (items.top) result.push(items.top);
-    if (items.bottom) result.push(items.bottom);
-  }
-  if (items.shoes) result.push(items.shoes);
-  return result;
-}
+// Same weights as OutfitVisualStack on web & app
+const WEIGHT = {
+  headwear: 1.5,
+  top: 4.5,
+  bottom: 5,
+  shoes: 2,
+  dress: 7.5,
+};
+
+// Width as fraction of 600px container (with 40px padding each side = 520px usable)
+const USABLE_WIDTH = 520;
+const WIDTH_RATIO = {
+  headwear: 0.28,
+  top: 0.91,
+  bottom: 0.82,
+  shoes: 0.73,
+  dress: 0.95,
+};
 
 export default async function Image({
   params,
@@ -50,7 +55,7 @@ export default async function Image({
   let data: SharedData | null = null;
   try {
     const res = await fetch(`${BACKEND_URL}/shared/${shareCode}`, {
-      next: { revalidate: 60 },
+      next: { revalidate: 30 },
     });
     if (res.ok) {
       const json = await res.json();
@@ -111,9 +116,31 @@ export default async function Image({
     );
   }
 
-  // Without try-on: vertically stacked items
-  const items = getStackItems(data.outfit.items);
-  if (items.length === 0) {
+  // Without try-on: full outfit stack (matching OutfitVisualStack)
+  const items = data.outfit.items;
+  const isDressOutfit = !!items.dress;
+  const hasOuterwear = !!items.outerwear?.croppedImageUrl;
+  const hasHeadwear = !!items.accessory?.croppedImageUrl;
+  const hasTop = !!items.top?.croppedImageUrl;
+  const hasBottom = !!items.bottom?.croppedImageUrl;
+  const hasShoes = !!items.shoes?.croppedImageUrl;
+  const hasDress = !!items.dress?.croppedImageUrl;
+  const hasGarmentRow = isDressOutfit ? (hasDress || hasOuterwear) : (hasTop || hasOuterwear);
+  const innerUri = isDressOutfit ? items.dress?.croppedImageUrl : items.top?.croppedImageUrl;
+
+  // Build row list with weights
+  type Row = { key: string; weight: number };
+  const rows: Row[] = [];
+  if (hasHeadwear) rows.push({ key: "headwear", weight: WEIGHT.headwear });
+  if (isDressOutfit) {
+    if (hasGarmentRow) rows.push({ key: "dress", weight: WEIGHT.dress });
+  } else {
+    if (hasGarmentRow) rows.push({ key: "top", weight: WEIGHT.top });
+    if (hasBottom) rows.push({ key: "bottom", weight: WEIGHT.bottom });
+  }
+  if (hasShoes) rows.push({ key: "shoes", weight: WEIGHT.shoes });
+
+  if (rows.length === 0) {
     return new ImageResponse(
       (
         <div
@@ -135,9 +162,148 @@ export default async function Image({
     );
   }
 
-  const count = Math.min(items.length, 3);
-  const heights = count === 1 ? [600] : count === 2 ? [380, 300] : [300, 260, 160];
-  const widths = count === 1 ? [450] : count === 2 ? [420, 380] : [400, 360, 280];
+  // Distribute height proportionally
+  const totalWeight = rows.reduce((sum, r) => sum + r.weight, 0);
+  const GAP = 8;
+  const PADDING = 40;
+  const availableHeight = size.height - PADDING * 2 - Math.max(0, rows.length - 1) * GAP;
+
+  const rowHeights: Record<string, number> = {};
+  for (const r of rows) {
+    rowHeights[r.key] = Math.round(availableHeight * (r.weight / totalWeight));
+  }
+
+  const rowWidths: Record<string, number> = {
+    headwear: Math.round(USABLE_WIDTH * WIDTH_RATIO.headwear),
+    top: Math.round(USABLE_WIDTH * WIDTH_RATIO.top),
+    bottom: Math.round(USABLE_WIDTH * WIDTH_RATIO.bottom),
+    shoes: Math.round(USABLE_WIDTH * WIDTH_RATIO.shoes),
+    dress: Math.round(USABLE_WIDTH * WIDTH_RATIO.dress),
+  };
+
+  // Render row elements
+  const rowElements = rows.map((row) => {
+    const h = rowHeights[row.key];
+    const w = rowWidths[row.key] || USABLE_WIDTH;
+
+    // Headwear
+    if (row.key === "headwear" && hasHeadwear) {
+      return (
+        <img
+          key="headwear"
+          src={items.accessory!.croppedImageUrl}
+          alt=""
+          width={w}
+          height={h}
+          style={{ objectFit: "contain" }}
+        />
+      );
+    }
+
+    // Dress or Top row — may be split with outerwear
+    if (row.key === "dress" || row.key === "top") {
+      if (hasOuterwear && innerUri) {
+        // Split view: left half of outerwear | right half of inner garment
+        // Renders each image at full row width inside a half-width clipped container
+        const halfWidth = Math.round(w / 2);
+        return (
+          <div
+            key={row.key}
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              width: w,
+              height: h,
+            }}
+          >
+            {/* Left half: left side of outerwear */}
+            <div
+              style={{
+                width: halfWidth,
+                height: h,
+                overflow: "hidden",
+                display: "flex",
+              }}
+            >
+              <img
+                src={items.outerwear!.croppedImageUrl}
+                alt=""
+                width={w}
+                height={h}
+                style={{ objectFit: "contain" }}
+              />
+            </div>
+            {/* Right half: right side of inner garment */}
+            <div
+              style={{
+                width: halfWidth,
+                height: h,
+                overflow: "hidden",
+                display: "flex",
+              }}
+            >
+              <img
+                src={innerUri}
+                alt=""
+                width={w}
+                height={h}
+                style={{ objectFit: "contain", marginLeft: -halfWidth }}
+              />
+            </div>
+          </div>
+        );
+      }
+
+      // Single garment (outerwear alone, or top/dress alone)
+      const uri = hasOuterwear
+        ? items.outerwear!.croppedImageUrl
+        : row.key === "dress"
+          ? items.dress?.croppedImageUrl
+          : items.top?.croppedImageUrl;
+
+      if (!uri) return null;
+      return (
+        <img
+          key={row.key}
+          src={uri}
+          alt=""
+          width={w}
+          height={h}
+          style={{ objectFit: "contain" }}
+        />
+      );
+    }
+
+    // Bottom
+    if (row.key === "bottom" && hasBottom) {
+      return (
+        <img
+          key="bottom"
+          src={items.bottom!.croppedImageUrl}
+          alt=""
+          width={w}
+          height={h}
+          style={{ objectFit: "contain" }}
+        />
+      );
+    }
+
+    // Shoes
+    if (row.key === "shoes" && hasShoes) {
+      return (
+        <img
+          key="shoes"
+          src={items.shoes!.croppedImageUrl}
+          alt=""
+          width={w}
+          height={h}
+          style={{ objectFit: "contain" }}
+        />
+      );
+    }
+
+    return null;
+  });
 
   return new ImageResponse(
     (
@@ -150,20 +316,11 @@ export default async function Image({
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: "#F5EDE7",
-          gap: 6,
+          padding: PADDING,
+          gap: GAP,
         }}
       >
-        {items.slice(0, 3).map((item, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={i}
-            src={item.croppedImageUrl}
-            alt=""
-            width={widths[i]}
-            height={heights[i]}
-            style={{ objectFit: "contain" }}
-          />
-        ))}
+        {rowElements}
       </div>
     ),
     { ...size }

@@ -33,6 +33,8 @@ const WIDTH_PCT: Record<string, string> = {
 
 /**
  * Split-view row: left half of outerwear + right half of inner garment.
+ * Each half clips a full-width image to show only its respective side
+ * (matches the app's OutfitVisualStack SplitLayerRow behavior).
  */
 function SplitLayerRow({
   outerUri,
@@ -47,25 +49,29 @@ function SplitLayerRow({
 }) {
   return (
     <div className="flex" style={{ width: widthPct, height: heightPct }}>
-      {/* Left half: outerwear */}
+      {/* Left half: left side of outerwear (full-width image clipped to left half) */}
       <div className="relative w-1/2 h-full overflow-hidden">
-        <Image
-          src={outerUri}
-          alt="Outerwear"
-          fill
-          className="object-contain object-right"
-          sizes="200px"
-        />
+        <div className="relative h-full" style={{ width: "200%" }}>
+          <Image
+            src={outerUri}
+            alt="Outerwear"
+            fill
+            className="object-contain"
+            sizes="400px"
+          />
+        </div>
       </div>
-      {/* Right half: inner garment */}
+      {/* Right half: right side of inner garment (full-width image offset left) */}
       <div className="relative w-1/2 h-full overflow-hidden">
-        <Image
-          src={innerUri}
-          alt="Top"
-          fill
-          className="object-contain object-left"
-          sizes="200px"
-        />
+        <div className="relative h-full" style={{ width: "200%", marginLeft: "-100%" }}>
+          <Image
+            src={innerUri}
+            alt="Top"
+            fill
+            className="object-contain"
+            sizes="400px"
+          />
+        </div>
       </div>
     </div>
   );

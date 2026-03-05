@@ -59,7 +59,7 @@ async function getSharedOutfit(
 ): Promise<SharedOutfitData | null> {
   try {
     const res = await fetch(`${BACKEND_URL}/shared/${shareCode}`, {
-      next: { revalidate: 60 },
+      next: { revalidate: 30 },
     });
     if (!res.ok) return null;
     const json = await res.json();
