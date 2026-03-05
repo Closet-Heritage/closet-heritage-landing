@@ -98,9 +98,6 @@ export async function generateMetadata({
       title,
       description,
       type: "article",
-      images: data.outfit.tryonImageUrl
-        ? [{ url: data.outfit.tryonImageUrl, width: 600, height: 800 }]
-        : [],
     },
   };
 }
@@ -234,7 +231,7 @@ export default async function SharedOutfitPage({
 
         {/* Outfit label */}
         {outfitLabel && (
-          <h1 className="animate-fade-in-up delay-1 text-2xl font-heading font-semibold text-foreground mb-4">
+          <h1 className="animate-fade-in-up delay-1 text-[20px] font-heading font-semibold text-foreground mb-3">
             {outfitLabel}
           </h1>
         )}
