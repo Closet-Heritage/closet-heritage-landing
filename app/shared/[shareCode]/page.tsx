@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommentSection } from "./CommentSection";
+import { ReactionBar } from "./ReactionBar";
 import { ImageLightbox } from "./ImageLightbox";
 import { OutfitVisualStack } from "./OutfitVisualStack";
 import { FullscreenOverlay } from "./FullscreenOverlay";
@@ -292,6 +293,11 @@ export default async function SharedOutfitPage({
             </div>
           </div>
         )}
+
+        {/* Reactions */}
+        <div className="animate-fade-in-up delay-4 mb-6">
+          <ReactionBar shareCode={shareCode} />
+        </div>
 
         {/* Divider */}
         <div className="animate-fade-in-up delay-4 border-t border-border mb-8" />
