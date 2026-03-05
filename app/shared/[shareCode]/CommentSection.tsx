@@ -274,7 +274,7 @@ export function CommentSection({ shareCode }: { shareCode: string }) {
               {deleteTokens[comment.id] && !comment.id.startsWith("optimistic-") && (
                 <button
                   onClick={() => handleDelete(comment.id)}
-                  className="self-center p-1.5 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="self-center p-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   aria-label="Delete comment"
                 >
                   <Trash2 size={14} />
