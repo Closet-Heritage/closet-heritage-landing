@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MessageCircle, Send } from "lucide-react";
+import { toast } from "sonner";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:3000/api/v1";
@@ -34,7 +35,12 @@ export function CommentSection({ shareCode }: { shareCode: string }) {
   const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  // Restore saved name from localStorage
+  useEffect(() => {
+    const savedName = localStorage.getItem("ch-comment-name");
+    if (savedName) setAuthorName(savedName);
+  }, []);
 
   // Fetch comments
   useEffect(() => {
@@ -56,21 +62,30 @@ export function CommentSection({ shareCode }: { shareCode: string }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     const trimmedName = authorName.trim();
     const trimmedContent = content.trim();
 
     if (!trimmedName) {
-      setError("Please enter your name");
+      toast.error("Please enter your name");
       return;
     }
     if (!trimmedContent) {
-      setError("Please write a comment");
+      toast.error("Please write a comment");
       return;
     }
 
+    // Optimistic insert
+    const optimisticComment: Comment = {
+      id: `optimistic-${Date.now()}`,
+      authorName: trimmedName,
+      content: trimmedContent,
+      createdAt: new Date().toISOString(),
+    };
+    setComments((prev) => [optimisticComment, ...prev]);
+    setContent("");
     setIsSending(true);
+
     try {
       const res = await fetch(`${BACKEND_URL}/shared/${shareCode}/comments`, {
         method: "POST",
@@ -82,80 +97,113 @@ export function CommentSection({ shareCode }: { shareCode: string }) {
       });
 
       if (res.status === 429) {
-        setError("Too many comments. Please wait a moment.");
+        // Roll back optimistic insert
+        setComments((prev) => prev.filter((c) => c.id !== optimisticComment.id));
+        setContent(trimmedContent);
+        toast.error("Too many comments. Please wait a moment.");
         return;
       }
 
       if (!res.ok) {
-        setError("Failed to post comment. Please try again.");
+        setComments((prev) => prev.filter((c) => c.id !== optimisticComment.id));
+        setContent(trimmedContent);
+        toast.error("Failed to post comment. Please try again.");
         return;
       }
 
       const json = await res.json();
-      setComments((prev) => [json.data, ...prev]);
-      setContent("");
+      // Replace optimistic comment with real one
+      setComments((prev) =>
+        prev.map((c) => (c.id === optimisticComment.id ? json.data : c))
+      );
+
+      // Persist name for next time
+      localStorage.setItem("ch-comment-name", trimmedName);
+
+      toast.success(`Thanks, ${trimmedName}!`, {
+        description: "Your comment has been posted.",
+      });
     } catch {
-      setError("Something went wrong. Please try again.");
+      setComments((prev) => prev.filter((c) => c.id !== optimisticComment.id));
+      setContent(trimmedContent);
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setIsSending(false);
     }
   };
 
+  const canSend = authorName.trim().length > 0 && content.trim().length > 0 && !isSending;
+
   return (
     <div>
-      <h2 className="text-sm font-body font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+      <h2 className="text-sm font-body font-semibold text-muted-foreground uppercase tracking-wider mb-5 flex items-center gap-2">
         <MessageCircle size={16} />
-        Comments ({isLoading ? "..." : comments.length})
+        Comments {!isLoading && `(${comments.length})`}
       </h2>
 
-      {/* Comment form */}
-      <form onSubmit={handleSubmit} className="mb-6">
-        <div className="flex flex-col sm:flex-row gap-3 mb-3">
+      {/* Comment form — card style */}
+      <form onSubmit={handleSubmit} className="mb-8">
+        <div className="rounded-xl border border-border overflow-hidden focus-within:border-warm-accent transition-colors">
           <input
             type="text"
             placeholder="Your name"
             value={authorName}
             onChange={(e) => setAuthorName(e.target.value)}
             maxLength={50}
-            className="flex-shrink-0 sm:w-40 px-3 py-2 text-sm font-body bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            className="w-full px-4 py-3 text-sm font-body bg-transparent text-foreground placeholder:text-muted-foreground border-b border-border focus:outline-none"
           />
-          <div className="flex-1 flex gap-2">
-            <input
-              type="text"
-              placeholder="Leave a comment..."
+          <div className="flex items-end gap-2 px-4 py-3">
+            <textarea
+              placeholder="Say something nice..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               maxLength={1000}
-              className="flex-1 px-3 py-2 text-sm font-body bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              rows={2}
+              className="flex-1 text-sm font-body bg-transparent text-foreground placeholder:text-muted-foreground resize-none focus:outline-none"
+              style={{ maxHeight: 120 }}
             />
             <button
               type="submit"
-              disabled={isSending}
-              className="px-4 py-2 bg-btn-cta text-foreground font-body text-sm font-semibold hover:bg-btn-cta-hover transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              disabled={!canSend}
+              className="flex-shrink-0 p-2 text-warm-accent hover:text-foreground disabled:text-border transition-colors disabled:cursor-not-allowed"
+              aria-label="Send comment"
             >
-              <Send size={14} />
-              <span className="hidden sm:inline">Send</span>
+              <Send size={18} />
             </button>
           </div>
         </div>
-        {error && (
-          <p className="text-xs font-body text-destructive">{error}</p>
-        )}
       </form>
 
       {/* Comments list */}
       {isLoading ? (
-        <p className="text-sm font-body text-muted-foreground">
-          Loading comments...
-        </p>
-      ) : comments.length === 0 ? (
-        <p className="text-sm font-body text-muted-foreground">
-          No comments yet. Be the first to share your thoughts!
-        </p>
-      ) : (
         <div className="space-y-4">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="flex gap-3 animate-pulse">
+              <div className="w-8 h-8 rounded-full bg-border/40" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-24 bg-border/40 rounded" />
+                <div className="h-3 w-full bg-border/40 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : comments.length === 0 ? (
+        <div className="text-center py-8">
+          <MessageCircle size={28} className="mx-auto text-border mb-3" strokeWidth={1.5} />
+          <p className="text-sm font-body text-muted-foreground">
+            No comments yet
+          </p>
+          <p className="text-xs font-body text-muted-foreground mt-1">
+            Be the first to share your thoughts
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-5">
           {comments.map((comment) => (
-            <div key={comment.id} className="flex gap-3">
+            <div
+              key={comment.id}
+              className={`flex gap-3 ${comment.id.startsWith("optimistic-") ? "opacity-60" : ""}`}
+            >
               <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-xs font-heading font-semibold text-foreground">
                   {comment.authorName.charAt(0).toUpperCase()}
@@ -170,7 +218,7 @@ export function CommentSection({ shareCode }: { shareCode: string }) {
                     {timeAgo(comment.createdAt)}
                   </span>
                 </div>
-                <p className="text-sm font-body text-foreground mt-0.5 break-words">
+                <p className="text-sm font-body text-foreground mt-0.5 break-words leading-relaxed">
                   {comment.content}
                 </p>
               </div>

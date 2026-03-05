@@ -4,6 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommentSection } from "./CommentSection";
 import { ImageLightbox } from "./ImageLightbox";
+import { OutfitVisualStack } from "./OutfitVisualStack";
+import { FullscreenOverlay } from "./FullscreenOverlay";
 
 // ============================================
 // TYPES
@@ -57,7 +59,7 @@ async function getSharedOutfit(
 ): Promise<SharedOutfitData | null> {
   try {
     const res = await fetch(`${BACKEND_URL}/shared/${shareCode}`, {
-      next: { revalidate: 60 }, // Cache for 60s
+      next: { revalidate: 60 },
     });
     if (!res.ok) return null;
     const json = await res.json();
@@ -84,7 +86,7 @@ export async function generateMetadata({
   }
 
   const ownerName = data.owner.name ?? "Someone";
-  const outfitName = data.outfit.name ?? data.outfit.styleLabel ?? "an outfit";
+  const outfitName = data.outfit.name ?? "a custom outfit";
   const title = `${ownerName} shared ${outfitName} — Closet Heritage`;
   const description =
     data.message ?? `Check out this outfit planned with Closet Heritage`;
@@ -117,7 +119,21 @@ function formatDate(dateStr: string): string {
   });
 }
 
-/** Get the visible outfit items as an array */
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function getItemsList(items: SharedOutfitData["outfit"]["items"]): OutfitItem[] {
   const slots: (keyof typeof items)[] = [
     "top",
@@ -150,8 +166,7 @@ export default async function SharedOutfitPage({
 
   const items = getItemsList(data.outfit.items);
   const ownerName = data.owner.name ?? "Someone";
-  const outfitLabel =
-    data.outfit.name ?? data.outfit.styleLabel ?? null;
+  const outfitLabel = data.outfit.name ?? "Custom Outfit";
 
   return (
     <div className="min-h-screen bg-background">
@@ -168,7 +183,7 @@ export default async function SharedOutfitPage({
           </Link>
           <Link
             href="/#hero"
-            className="text-sm font-body text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-block px-5 py-2 text-sm font-body font-semibold bg-btn-cta text-foreground hover:bg-btn-cta-hover border border-border transition-colors"
           >
             Get the app
           </Link>
@@ -178,83 +193,77 @@ export default async function SharedOutfitPage({
       {/* Main content */}
       <main className="max-w-[800px] mx-auto px-6 py-10">
         {/* Owner info */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="animate-fade-in-up flex items-center gap-4 mb-8">
           {data.owner.avatarUrl ? (
             <ImageLightbox
               src={data.owner.avatarUrl}
               alt={ownerName}
-              width={44}
-              height={44}
-              className="w-11 h-11 rounded-full object-cover object-top"
+              width={52}
+              height={52}
+              className="w-[52px] h-[52px] rounded-full object-cover object-top"
               lightboxBg=""
             />
           ) : (
-            <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center">
-              <span className="text-lg font-heading font-semibold text-foreground">
+            <div className="w-[52px] h-[52px] rounded-full bg-secondary flex items-center justify-center">
+              <span className="text-xl font-heading font-semibold text-foreground">
                 {ownerName.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
-          <div>
-            <p className="text-sm font-body font-semibold text-foreground">
+          <div className="flex-1">
+            <p className="text-base font-body font-semibold text-foreground">
               {ownerName}
             </p>
-            <p className="text-xs font-body text-muted-foreground">
-              Shared{" "}
-              {data.outfit.plannedDate
-                ? `an outfit for ${formatDate(data.outfit.plannedDate)}`
-                : "an outfit"}
+            <p className="text-sm font-body text-muted-foreground">
+              Shared an outfit for {formatDate(data.outfit.plannedDate!)}
             </p>
           </div>
         </div>
 
         {/* Message */}
         {data.message && (
-          <p className="text-base font-body text-foreground mb-6 leading-relaxed">
-            &ldquo;{data.message}&rdquo;
-          </p>
+          <div className="animate-fade-in-up delay-1 border-l-2 border-warm-accent pl-4 mb-6">
+            <p className="text-base text-[15px] font-body text-foreground leading-relaxed italic">
+              {data.message}
+            </p>
+            <p className="text-xs font-body text-muted-foreground mt-1">
+              — {ownerName}
+            </p>
+          </div>
         )}
 
         {/* Outfit label */}
         {outfitLabel && (
-          <h1 className="text-2xl font-heading font-semibold text-foreground mb-4">
+          <h1 className="animate-fade-in-up delay-1 text-2xl font-heading font-semibold text-foreground mb-4">
             {outfitLabel}
           </h1>
         )}
 
-        {/* Try-on image (if available) */}
-        {data.outfit.tryonImageUrl && (
-          <div className="mb-8 flex justify-center">
+        {/* Outfit visual — try-on image or stacked items */}
+        <div className="animate-fade-in-up delay-2 mb-8 flex justify-center">
+          {data.outfit.tryonImageUrl ? (
             <div className="relative w-full max-w-[400px] aspect-[3/4] rounded-2xl overflow-hidden border border-border">
               <ImageLightbox
                 src={data.outfit.tryonImageUrl}
-                alt={outfitLabel ?? "Virtual try-on"}
+                alt={outfitLabel}
                 fill
                 className="object-contain bg-surface-secondary"
                 sizes="400px"
                 priority
               />
             </div>
-          </div>
-        )}
-
-        {/* Style info badges */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {data.outfit.styleLabel && (
-            <span className="px-3 py-1 text-xs font-body bg-secondary text-foreground rounded-full">
-              {data.outfit.styleLabel}
-            </span>
-          )}
-          {data.outfit.colorHarmony && (
-            <span className="px-3 py-1 text-xs font-body bg-secondary text-foreground rounded-full">
-              {data.outfit.colorHarmony}
-            </span>
+          ) : items.length > 0 && (
+            <div className="w-full max-w-[400px] aspect-[3/4] rounded-2xl overflow-hidden border border-border bg-surface-secondary p-4">
+              <FullscreenOverlay>
+                <OutfitVisualStack items={data.outfit.items} />
+              </FullscreenOverlay>
+            </div>
           )}
         </div>
 
         {/* Outfit items grid */}
         {items.length > 0 && (
-          <div className="mb-10">
+          <div className="animate-fade-in-up delay-3 mb-10">
             <h2 className="text-sm font-body font-semibold text-muted-foreground uppercase tracking-wider mb-4">
               Items in this outfit
             </h2>
@@ -262,7 +271,7 @@ export default async function SharedOutfitPage({
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-xl border border-border overflow-hidden bg-surface-secondary"
+                  className="rounded-xl border border-border overflow-hidden bg-surface-secondary hover:border-warm-accent transition-colors"
                 >
                   <div className="relative aspect-square">
                     <ImageLightbox
@@ -288,25 +297,27 @@ export default async function SharedOutfitPage({
         )}
 
         {/* Divider */}
-        <div className="border-t border-border mb-8" />
+        <div className="animate-fade-in-up delay-4 border-t border-border mb-8" />
 
-        {/* Comments section (client component) */}
-        <CommentSection shareCode={shareCode} />
+        {/* Comments section */}
+        <div className="animate-fade-in-up delay-5">
+          <CommentSection shareCode={shareCode} />
+        </div>
 
         {/* CTA */}
-        <div className="mt-12 mb-8 text-center py-10 px-6 bg-section-warm rounded-2xl">
+        <div className="animate-fade-in-up delay-6 mt-12 mb-8 text-center py-10 px-6 bg-section-warm rounded-2xl">
           <h2 className="text-xl font-heading font-semibold text-foreground mb-2">
-            Plan your own outfits
+            Want to create outfits like this?
           </h2>
           <p className="text-sm font-body text-muted-foreground mb-6">
             Closet Heritage helps you digitize your wardrobe, plan outfits with
             AI, and try them on virtually.
           </p>
           <Link
-            href="/"
-            className="inline-block px-8 py-3 bg-btn-cta text-foreground font-body font-semibold text-sm hover:bg-btn-cta-hover transition-colors"
+            href="/#hero"
+            className="inline-block px-8 py-3 bg-btn-cta text-foreground font-body font-semibold text-sm hover:bg-btn-cta-hover border border-border transition-colors"
           >
-            Get early access
+            Join the beta
           </Link>
         </div>
       </main>

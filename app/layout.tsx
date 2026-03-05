@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Fira_Code } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -44,6 +45,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${playfair.variable} ${firaCode.variable} antialiased`}>
         {children}
+        <Toaster position="bottom-center" />
       </body>
     </html>
   );
