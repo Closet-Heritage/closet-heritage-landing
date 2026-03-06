@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageCircle, Send, Trash2 } from "lucide-react";
+import { MessageCircle, Send, Trash2, Flag } from "lucide-react";
 import { toast } from "sonner";
 
 const BACKEND_URL =
@@ -40,6 +40,7 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
   const [content, setContent] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [deleteTokens, setDeleteTokens] = useState<Record<string, string>>({});
+  const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
 
   // Restore saved name and delete tokens from localStorage
   useEffect(() => {
@@ -116,7 +117,12 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
       if (!res.ok) {
         setComments((prev) => prev.filter((c) => c.id !== optimisticComment.id));
         setContent(trimmedContent);
-        toast.error("Failed to post comment. Please try again.");
+        try {
+          const errJson = await res.json();
+          toast.error(errJson?.error?.message || "Failed to post comment. Please try again.");
+        } catch {
+          toast.error("Failed to post comment. Please try again.");
+        }
         return;
       }
 
@@ -183,6 +189,28 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
       setComments(prev);
       toast.error("Failed to delete comment");
     }
+  };
+
+  const handleReport = async (commentId: string, reason: string) => {
+    try {
+      const res = await fetch(
+        `${BACKEND_URL}/shared/comments/${commentId}/report`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason }),
+        }
+      );
+      if (res.ok) {
+        toast.success("Comment reported. Thanks for helping keep things safe.");
+      } else {
+        const errJson = await res.json().catch(() => null);
+        toast.error(errJson?.error?.message || "Failed to report comment");
+      }
+    } catch {
+      toast.error("Failed to report comment");
+    }
+    setReportingCommentId(null);
   };
 
   const canSend = authorName.trim().length > 0 && content.trim().length > 0 && !isSending;
@@ -283,6 +311,32 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
                 >
                   <Trash2 size={14} />
                 </button>
+              )}
+              {!deleteTokens[comment.id] && !comment.id.startsWith("optimistic-") && (
+                <div className="relative self-center">
+                  <button
+                    onClick={() => setReportingCommentId(
+                      reportingCommentId === comment.id ? null : comment.id
+                    )}
+                    className="p-1.5 text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-foreground transition-colors cursor-pointer"
+                    aria-label="Report comment"
+                  >
+                    <Flag size={12} />
+                  </button>
+                  {reportingCommentId === comment.id && (
+                    <div className="absolute right-0 top-8 z-10 bg-background border border-border rounded-lg shadow-lg py-1 min-w-[140px]">
+                      {["spam", "inappropriate", "harassment", "other"].map((reason) => (
+                        <button
+                          key={reason}
+                          onClick={() => handleReport(comment.id, reason)}
+                          className="w-full text-left px-3 py-2 text-sm font-body text-foreground hover:bg-secondary transition-colors capitalize cursor-pointer"
+                        >
+                          {reason}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           ))}
