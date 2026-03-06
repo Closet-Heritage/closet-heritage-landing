@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { MessageCircle, Send, Trash2, Flag, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -107,15 +107,6 @@ function ReportModal({
   const [selected, setSelected] = useState<string | null>(null);
   const [otherText, setOtherText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Reset on open
-  useEffect(() => {
-    if (open) {
-      setSelected(null);
-      setOtherText("");
-      setIsSubmitting(false);
-    }
-  }, [open]);
 
   if (!open) return null;
 
@@ -359,7 +350,7 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
       }
 
       // Remove token from storage
-      const { [commentId]: _, ...remaining } = deleteTokens;
+      const { [commentId]: _removed, ...remaining } = deleteTokens;
       setDeleteTokens(remaining);
       localStorage.setItem("ch-comment-tokens", JSON.stringify(remaining));
       toast.success("Comment deleted");
@@ -488,7 +479,7 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
               {deleteTokens[comment.id] && !comment.id.startsWith("optimistic-") && (
                 <button
                   onClick={() => setDeletingCommentId(comment.id)}
-                  className="self-center p-1.5 text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
+                  className="self-center p-1.5 text-red-400 hover:text-red-500 transition-colors cursor-pointer"
                   aria-label="Delete comment"
                 >
                   <Trash2 size={14} />
@@ -498,7 +489,7 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
               {!deleteTokens[comment.id] && !comment.id.startsWith("optimistic-") && (
                 <button
                   onClick={() => setReportingCommentId(comment.id)}
-                  className="self-center p-1.5 text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-foreground transition-colors cursor-pointer"
+                  className="self-center p-1.5 text-amber-400 hover:text-amber-500 transition-colors cursor-pointer"
                   aria-label="Report comment"
                 >
                   <Flag size={12} />
@@ -522,6 +513,7 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
 
       {/* Report modal */}
       <ReportModal
+        key={reportingCommentId ?? 'closed'}
         open={!!reportingCommentId}
         onReport={handleReport}
         onClose={() => setReportingCommentId(null)}
