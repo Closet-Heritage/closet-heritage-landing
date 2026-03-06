@@ -45,7 +45,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${playfair.variable} ${firaCode.variable} antialiased`}>
         {children}
-        <Toaster position="bottom-center" />
+        <Toaster position="top-center" />
       </body>
     </html>
   );
