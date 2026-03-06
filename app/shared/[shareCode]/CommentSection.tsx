@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { MessageCircle, Send, Trash2, Flag } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MessageCircle, Send, Trash2, Flag, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 const BACKEND_URL =
@@ -29,6 +29,183 @@ function timeAgo(dateStr: string): string {
   });
 }
 
+const REPORT_REASONS = [
+  { value: "spam", label: "Spam" },
+  { value: "inappropriate", label: "Inappropriate content" },
+  { value: "harassment", label: "Harassment" },
+  { value: "other", label: "Other" },
+] as const;
+
+// ============================================
+// Confirm Dialog
+// ============================================
+function ConfirmDialog({
+  open,
+  title,
+  message,
+  confirmText,
+  confirmVariant = "danger",
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  title: string;
+  message: string;
+  confirmText: string;
+  confirmVariant?: "danger" | "warning";
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-in fade-in duration-200">
+      <div className="bg-background border border-border rounded-2xl shadow-xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+        <div className="flex items-start gap-3 mb-4">
+          <div className={`p-2 rounded-full flex-shrink-0 ${confirmVariant === "danger" ? "bg-red-500/10" : "bg-amber-500/10"}`}>
+            <AlertTriangle size={18} className={confirmVariant === "danger" ? "text-red-500" : "text-amber-500"} />
+          </div>
+          <div>
+            <h3 className="text-base font-heading font-semibold text-foreground">{title}</h3>
+            <p className="text-sm font-body text-muted-foreground mt-1 leading-relaxed">{message}</p>
+          </div>
+        </div>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-body font-medium text-muted-foreground hover:text-foreground rounded-lg transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`px-4 py-2 text-sm font-body font-medium text-white rounded-lg transition-colors cursor-pointer ${
+              confirmVariant === "danger"
+                ? "bg-red-500 hover:bg-red-600"
+                : "bg-amber-500 hover:bg-amber-600"
+            }`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// Report Modal
+// ============================================
+function ReportModal({
+  open,
+  onReport,
+  onClose,
+}: {
+  open: boolean;
+  onReport: (reason: string) => void;
+  onClose: () => void;
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [otherText, setOtherText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset on open
+  useEffect(() => {
+    if (open) {
+      setSelected(null);
+      setOtherText("");
+      setIsSubmitting(false);
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  const canSubmit = selected && (selected !== "other" || otherText.trim().length > 0);
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+    setIsSubmitting(true);
+    await onReport(selected);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-in fade-in duration-200">
+      <div className="bg-background border border-border rounded-2xl shadow-xl max-w-sm w-full animate-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-full bg-muted">
+              <Flag size={16} className="text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-base font-heading font-semibold text-foreground">Report comment</h3>
+              <p className="text-xs font-body text-muted-foreground">Why are you reporting this?</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg transition-colors cursor-pointer"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Reason options */}
+        <div className="px-5 pb-2 space-y-2">
+          {REPORT_REASONS.map((reason) => {
+            const isSelected = selected === reason.value;
+            return (
+              <button
+                key={reason.value}
+                onClick={() => setSelected(reason.value)}
+                className={`w-full text-left px-4 py-3 text-sm font-body rounded-xl border transition-all cursor-pointer ${
+                  isSelected
+                    ? "border-warm-accent bg-warm-accent/5 text-foreground font-medium"
+                    : "border-border hover:border-muted-foreground/30 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                    isSelected ? "border-warm-accent" : "border-border"
+                  }`}>
+                    {isSelected && <span className="w-2 h-2 rounded-full bg-warm-accent" />}
+                  </span>
+                  {reason.label}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* Other — text input */}
+          {selected === "other" && (
+            <textarea
+              value={otherText}
+              onChange={(e) => setOtherText(e.target.value)}
+              placeholder="Please describe the issue..."
+              maxLength={500}
+              rows={3}
+              className="w-full px-4 py-3 text-sm font-body bg-secondary text-foreground placeholder:text-muted-foreground rounded-xl border border-border focus:border-warm-accent focus:outline-none resize-none transition-colors"
+            />
+          )}
+        </div>
+
+        {/* Submit */}
+        <div className="px-5 pt-3 pb-5">
+          <button
+            onClick={handleSubmit}
+            disabled={!canSubmit || isSubmitting}
+            className="w-full py-2.5 text-sm font-body font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors cursor-pointer"
+          >
+            {isSubmitting ? "Reporting..." : "Submit report"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// Comment Section
+// ============================================
 interface CommentSectionProps {
   shareCode: string;
 }
@@ -41,6 +218,7 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
   const [isSending, setIsSending] = useState(false);
   const [deleteTokens, setDeleteTokens] = useState<Record<string, string>>({});
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   // Restore saved name and delete tokens from localStorage
   useEffect(() => {
@@ -107,7 +285,6 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
       });
 
       if (res.status === 429) {
-        // Roll back optimistic insert
         setComments((prev) => prev.filter((c) => c.id !== optimisticComment.id));
         setContent(trimmedContent);
         toast.error("Too many comments. Please wait a moment.");
@@ -163,6 +340,7 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
     // Optimistic removal
     const prev = comments;
     setComments((c) => c.filter((x) => x.id !== commentId));
+    setDeletingCommentId(null);
 
     try {
       const res = await fetch(
@@ -191,7 +369,10 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
     }
   };
 
-  const handleReport = async (commentId: string, reason: string) => {
+  const handleReport = async (reason: string) => {
+    const commentId = reportingCommentId;
+    if (!commentId) return;
+
     try {
       const res = await fetch(
         `${BACKEND_URL}/shared/comments/${commentId}/report`,
@@ -303,45 +484,48 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
                   {comment.content}
                 </p>
               </div>
+              {/* Delete (own comment) */}
               {deleteTokens[comment.id] && !comment.id.startsWith("optimistic-") && (
                 <button
-                  onClick={() => handleDelete(comment.id)}
-                  className="self-center p-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  onClick={() => setDeletingCommentId(comment.id)}
+                  className="self-center p-1.5 text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
                   aria-label="Delete comment"
                 >
                   <Trash2 size={14} />
                 </button>
               )}
+              {/* Report (others' comments) */}
               {!deleteTokens[comment.id] && !comment.id.startsWith("optimistic-") && (
-                <div className="relative self-center">
-                  <button
-                    onClick={() => setReportingCommentId(
-                      reportingCommentId === comment.id ? null : comment.id
-                    )}
-                    className="p-1.5 text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-foreground transition-colors cursor-pointer"
-                    aria-label="Report comment"
-                  >
-                    <Flag size={12} />
-                  </button>
-                  {reportingCommentId === comment.id && (
-                    <div className="absolute right-0 top-8 z-10 bg-background border border-border rounded-lg shadow-lg py-1 min-w-[140px]">
-                      {["spam", "inappropriate", "harassment", "other"].map((reason) => (
-                        <button
-                          key={reason}
-                          onClick={() => handleReport(comment.id, reason)}
-                          className="w-full text-left px-3 py-2 text-sm font-body text-foreground hover:bg-secondary transition-colors capitalize cursor-pointer"
-                        >
-                          {reason}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={() => setReportingCommentId(comment.id)}
+                  className="self-center p-1.5 text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-foreground transition-colors cursor-pointer"
+                  aria-label="Report comment"
+                >
+                  <Flag size={12} />
+                </button>
               )}
             </div>
           ))}
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        open={!!deletingCommentId}
+        title="Delete comment?"
+        message="This comment will be permanently removed. This can't be undone."
+        confirmText="Delete"
+        confirmVariant="danger"
+        onConfirm={() => deletingCommentId && handleDelete(deletingCommentId)}
+        onCancel={() => setDeletingCommentId(null)}
+      />
+
+      {/* Report modal */}
+      <ReportModal
+        open={!!reportingCommentId}
+        onReport={handleReport}
+        onClose={() => setReportingCommentId(null)}
+      />
     </div>
   );
 }
