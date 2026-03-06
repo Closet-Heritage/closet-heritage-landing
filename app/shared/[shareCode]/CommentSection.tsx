@@ -395,27 +395,27 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
       {/* Delete confirmation dialog — portaled to body via Radix */}
       <Dialog open={!!deletingCommentId} onOpenChange={(open) => { if (!open) setDeletingCommentId(null); }}>
         <DialogContent showCloseButton={false} className="max-w-sm">
-          <DialogHeader>
+          <DialogHeader className="text-left">
             <DialogTitle className="text-base font-heading flex items-center gap-2">
               <div className="p-1.5 rounded-full bg-red-500/10 flex-shrink-0">
                 <AlertTriangle size={16} className="text-red-500" />
               </div>
               Delete comment?
             </DialogTitle>
-            <DialogDescription className="mt-1 leading-relaxed">
+            <DialogDescription className="mt-0.5 leading-relaxed">
               This comment will be permanently removed. This can&apos;t be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row justify-end">
             <button
               onClick={() => setDeletingCommentId(null)}
-              className="px-4 py-2 text-sm font-body font-medium text-muted-foreground hover:text-foreground rounded-lg transition-colors cursor-pointer"
+              className="px-4 py-2 text-sm font-body font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={() => deletingCommentId && handleDelete(deletingCommentId)}
-              className="px-4 py-2 text-sm font-body font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors cursor-pointer"
+              className="px-4 py-2 text-sm font-body font-medium text-white bg-red-500 hover:bg-red-600 transition-colors cursor-pointer"
             >
               Delete
             </button>
