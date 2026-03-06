@@ -369,7 +369,7 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
-                        className="self-center p-1.5 text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-foreground transition-colors cursor-pointer"
+                        className="self-center p-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                         aria-label="Comment options"
                       >
                         <MoreVertical size={14} />
