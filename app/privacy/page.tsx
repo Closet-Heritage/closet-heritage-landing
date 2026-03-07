@@ -16,7 +16,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="text-muted-foreground text-sm mb-12">
-          Last updated: February 27, 2026
+          Last updated: March 7, 2026
         </p>
 
         <div className="space-y-10 text-foreground/90 text-[15px] leading-relaxed">
@@ -70,13 +70,30 @@ export default function PrivacyPage() {
             </h3>
             <ul className="list-disc pl-6 space-y-1.5">
               <li>
-                <strong>Device information:</strong> Device type, operating
-                system, and push notification tokens
+                <strong>Device information:</strong> Device model, operating
+                system version, screen size, app version, and language/locale
               </li>
               <li>
-                <strong>Location (optional):</strong> Approximate location for
-                weather-appropriate outfit suggestions, only when you grant
-                permission
+                <strong>Push notification tokens:</strong> Used to deliver
+                notifications about completed processing and outfit reminders
+              </li>
+              <li>
+                <strong>Usage analytics:</strong> We collect anonymized usage
+                data such as screens visited, features used (e.g., outfit
+                generation, virtual try-on), and session information to improve
+                the Service. This data is collected via PostHog, a privacy-focused
+                analytics platform.
+              </li>
+              <li>
+                <strong>Error and crash data:</strong> JavaScript exceptions and
+                error logs to help us identify and fix issues
+              </li>
+              <li>
+                <strong>Session recordings:</strong> We may record anonymized
+                screen sessions (with text inputs masked) to understand how
+                users interact with the app and improve the experience. Clothing
+                images are visible in recordings as they are core to the
+                Service.
               </li>
             </ul>
           </section>
@@ -176,6 +193,12 @@ export default function PrivacyPage() {
                 Supabase (cloud hosting) and processed on our backend servers
               </li>
               <li>
+                <strong>Analytics provider:</strong> Usage data, session
+                recordings, and error reports are processed by PostHog (US
+                servers) to help us improve the Service. PostHog does not sell
+                your data or use it for advertising.
+              </li>
+              <li>
                 <strong>Legal requirements:</strong> If required by law,
                 regulation, or legal process
               </li>
@@ -243,22 +266,46 @@ export default function PrivacyPage() {
               9. Children&apos;s Privacy
             </h2>
             <p>
-              Closet Heritage is not intended for children under 16. We do not
-              knowingly collect data from anyone under 16. If we learn that we
-              have collected data from a child under 16, we will promptly delete
-              it.
+              Closet Heritage is designed for a general audience and is rated 4+
+              on the App Store and has a content rating on Google Play. We do not
+              knowingly collect personal data from children under 13 without
+              parental consent. If we learn that we have collected data from a
+              child under 13, we will promptly delete it. If you are a parent or
+              guardian and believe your child has provided us with personal data,
+              please contact us.
             </p>
           </section>
 
           <section>
             <h2 className="font-heading text-xl font-semibold text-foreground mb-3">
-              10. Cookies &amp; Tracking
+              10. Analytics &amp; Tracking
             </h2>
             <p>
-              The Closet Heritage mobile app does not use cookies. Our website
-              may use essential cookies for functionality (e.g., form
-              submissions). We do not use third-party advertising trackers or
-              analytics cookies.
+              We use PostHog, a privacy-focused analytics platform, to
+              understand how the app is used and to improve the Service. PostHog
+              collects:
+            </p>
+            <ul className="list-disc pl-6 mt-3 space-y-1.5">
+              <li>
+                Usage events (e.g., features used, screens visited)
+              </li>
+              <li>
+                Device information (model, OS version, screen size, language)
+              </li>
+              <li>
+                Session recordings (a sample of sessions, with text inputs
+                masked for privacy)
+              </li>
+              <li>
+                Error and crash reports
+              </li>
+            </ul>
+            <p className="mt-3">
+              We do <strong>not</strong> use any advertising trackers or
+              cross-app tracking. PostHog data is used solely for product
+              improvement and is not shared with advertisers. Our website may use
+              essential cookies for functionality. The mobile app does not use
+              cookies.
             </p>
           </section>
 

@@ -16,7 +16,7 @@ export default function TermsPage() {
           Terms of Service
         </h1>
         <p className="text-muted-foreground text-sm mb-12">
-          Last updated: February 27, 2026
+          Last updated: March 7, 2026
         </p>
 
         <div className="space-y-10 text-foreground/90 text-[15px] leading-relaxed">
@@ -43,10 +43,11 @@ export default function TermsPage() {
               2. Eligibility
             </h2>
             <p>
-              You must be at least 16 years old to use Closet Heritage. By using
-              the Service, you represent that you meet this age requirement. If
-              you are under the age of majority in your jurisdiction, you
-              confirm that you have your parent or guardian&apos;s consent.
+              Closet Heritage is designed for a general audience. Users under the
+              age of majority in their jurisdiction should have their parent or
+              guardian&apos;s consent before using the Service. By using Closet
+              Heritage, you confirm that you have any required parental or
+              guardian consent.
             </p>
           </section>
 
