@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,6 +41,7 @@ export default function WaitlistForm({
       const data = await res.json();
 
       if (res.ok) {
+        posthog.capture("waitlist_joined");
         setStatus("success");
         setName("");
         setEmail("");

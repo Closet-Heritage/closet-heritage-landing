@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { MessageCircle, Send, MoreVertical, Trash2, Flag, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 import {
   Dialog,
   DialogContent,
@@ -173,6 +174,7 @@ export function CommentSection({ shareCode }: CommentSectionProps) {
       // Persist name for next time
       localStorage.setItem("ch-comment-name", trimmedName);
 
+      posthog.capture("shared_outfit_commented", { share_code: shareCode });
       toast.success(`Thanks, ${trimmedName}!`, {
         description: "Your comment has been posted.",
       });

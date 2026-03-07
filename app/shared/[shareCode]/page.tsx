@@ -8,6 +8,7 @@ import { CollapsibleItems } from "./CollapsibleItems";
 import { ImageLightbox } from "./ImageLightbox";
 import { OutfitVisualStack } from "./OutfitVisualStack";
 import { FullscreenOverlay } from "./FullscreenOverlay";
+import { ViewTracker } from "./ViewTracker";
 
 // ============================================
 // TYPES
@@ -169,6 +170,7 @@ export default async function SharedOutfitPage({
 
   return (
     <div className="min-h-screen bg-background">
+      <ViewTracker shareCode={shareCode} />
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
         <div className="max-w-[800px] mx-auto px-6 flex items-center justify-between h-16">

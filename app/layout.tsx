@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Fira_Code } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { PostHogProvider } from "./providers";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -44,8 +45,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${playfair.variable} ${firaCode.variable} antialiased`}>
-        {children}
-        <Toaster position="top-center" />
+        <PostHogProvider>
+          {children}
+          <Toaster position="top-center" />
+        </PostHogProvider>
       </body>
     </html>
   );

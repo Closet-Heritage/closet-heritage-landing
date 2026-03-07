@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 
 export default function Footer() {
@@ -22,6 +23,7 @@ export default function Footer() {
       const data = await res.json();
 
       if (res.ok) {
+        posthog.capture("contact_form_sent");
         setStatus("success");
         setFormState({ name: "", email: "", message: "" });
         setTimeout(() => setStatus("idle"), 4000);

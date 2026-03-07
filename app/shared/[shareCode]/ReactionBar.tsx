@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
+import posthog from "posthog-js";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:3000/api/v1";
@@ -104,6 +105,10 @@ export function ReactionBar({ shareCode }: { shareCode: string }) {
             `ch-reactions-${shareCode}`,
             JSON.stringify({ userReaction: json.data.userReaction })
           );
+          posthog.capture("shared_outfit_reacted", {
+            reaction: reactionType,
+            share_code: shareCode,
+          });
         }
       } else {
         // Rollback
