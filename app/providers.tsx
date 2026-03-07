@@ -12,6 +12,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
       capture_pageview: false, // We capture manually for Next.js route changes
       capture_pageleave: true,
+      person_profiles: "always", // Creates person profiles for anonymous visitors (needed for World Map)
     });
   }, []);
 
