@@ -128,34 +128,34 @@ export function ReactionBar({ shareCode }: { shareCode: string }) {
       <button
         onClick={() => handleToggle("down")}
         disabled={isToggling}
-        className={`absolute top-3 left-3 flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors cursor-pointer ${
+        className={`absolute top-3 left-3 flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-colors cursor-pointer ${
           data.userReaction === "down"
             ? "bg-white/95 text-warm-accent"
             : "bg-white/70 text-muted-foreground hover:bg-white/90"
         }`}
       >
         <ThumbsDown
-          size={14}
+          size={18}
           fill={data.userReaction === "down" ? "currentColor" : "none"}
         />
-        <span className="text-xs font-body font-semibold">
+        <span className="text-sm font-body font-semibold">
           {data.counts.down}
         </span>
       </button>
       <button
         onClick={() => handleToggle("up")}
         disabled={isToggling}
-        className={`absolute top-3 right-3 flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors cursor-pointer ${
+        className={`absolute top-3 right-3 flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-colors cursor-pointer ${
           data.userReaction === "up"
             ? "bg-white/95 text-warm-accent"
             : "bg-white/70 text-muted-foreground hover:bg-white/90"
         }`}
       >
         <ThumbsUp
-          size={14}
+          size={18}
           fill={data.userReaction === "up" ? "currentColor" : "none"}
         />
-        <span className="text-xs font-body font-semibold">
+        <span className="text-sm font-body font-semibold">
           {data.counts.up}
         </span>
       </button>
