@@ -1,89 +1,162 @@
 "use client";
 
-import { useState, useCallback, useEffect, Suspense } from "react";
+import { useState, useCallback, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Crown, Check, Coins, Loader2, ArrowLeft } from "lucide-react";
+import { Crown, Check, Coins, Loader2, ArrowLeft, AlertTriangle, User } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { usePostHog } from "posthog-js/react";
 import Navbar from "@/components/Navbar";
 import BottomBar from "@/components/BottomBar";
 import { Button } from "@/components/ui/button";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL ?? "https://api.closetheritage.com/api/v1";
 
-type PlanId = "standard" | "premium";
-type BillingCycle = "monthly" | "annual";
-
-interface PlanConfig {
-  name: string;
-  monthlyPriceGHS: string;
-  annualPriceGHS: string;
-  annualMonthlyGHS: string;
-  savingsPercent: number;
-  coinsPerMonth: number;
-  features: string[];
+// Minimal PaystackPop type — avoids `as any` casts.
+type PaystackPopInstance = {
+  resumeTransaction: (
+    accessCode: string,
+    opts: { onSuccess?: () => void; onCancel?: () => void; onError?: () => void },
+  ) => void;
+};
+type PaystackPopCtor = new () => PaystackPopInstance;
+declare global {
+  interface Window {
+    PaystackPop?: PaystackPopCtor;
+  }
 }
 
-const PLANS: Record<PlanId, PlanConfig> = {
-  standard: {
-    name: "Standard",
-    monthlyPriceGHS: "GHS 19.99",
-    annualPriceGHS: "GHS 199.99",
-    annualMonthlyGHS: "GHS 16.67",
-    savingsPercent: 16,
-    coinsPerMonth: 50,
-    features: [
-      "50 coins every month",
-      "~10 virtual try-ons",
-      "~50 outfit generations",
-      "Matching set detection",
-      "Share outfits with friends",
-      "Unlimited wardrobe items",
-    ],
-  },
-  premium: {
-    name: "Premium",
-    monthlyPriceGHS: "GHS 29.99",
-    annualPriceGHS: "GHS 299.99",
-    annualMonthlyGHS: "GHS 25.00",
-    savingsPercent: 16,
-    coinsPerMonth: 100,
-    features: [
-      "100 coins every month",
-      "~20 virtual try-ons",
-      "~100 outfit generations",
-      "Matching set detection",
-      "Share outfits with friends",
-      "Unlimited wardrobe items",
-      "Priority AI processing",
-    ],
-  },
+type PlanId = "standard" | "premium";
+type BillingCycle = "monthly" | "annual";
+type CheckoutMode = "subscription" | "coin_pack";
+
+interface PlansResponse {
+  success: boolean;
+  data: {
+    currency: string;
+    plans: Record<PlanId, {
+      name: string;
+      monthlyPrice: number;  // pesewas
+      annualPrice: number;
+      coinsPerMonth: number;
+    }>;
+    coinPacks: Array<{
+      id: string;
+      coins: number;
+      priceGhs: number;  // pesewas
+      label: string;
+    }>;
+  };
+}
+
+interface IdentityResponse {
+  success: boolean;
+  data?: {
+    firstName: string;
+    maskedEmail: string;
+    type: CheckoutMode;
+    plan: PlanId | null;
+    cycle: BillingCycle | null;
+    packId: string | null;
+    conflictingProvider: string | null;
+  };
+  error?: string;
+}
+
+interface VerifyResponse {
+  success: boolean;
+  data: {
+    verified: boolean;
+    status: string;
+    pending?: boolean;
+    plan?: string | null;
+    periodType?: string | null;
+    amount?: number | null;
+    currency?: string | null;
+  };
+}
+
+function formatGhs(pesewas: number): string {
+  return `GHS ${(pesewas / 100).toFixed(2)}`;
+}
+
+// Subscription feature lists (marketing copy, not pricing — safe to keep static)
+const PLAN_FEATURES: Record<PlanId, string[]> = {
+  standard: [
+    "~10 virtual try-ons each month",
+    "~50 outfit generations",
+    "Matching set detection",
+    "Share outfits with friends",
+    "Unlimited wardrobe items",
+  ],
+  premium: [
+    "~20 virtual try-ons each month",
+    "~100 outfit generations",
+    "Matching set detection",
+    "Share outfits with friends",
+    "Unlimited wardrobe items",
+    "Priority AI processing",
+  ],
 };
 
 function SubscribeContent() {
   const searchParams = useSearchParams();
-  const statusParam = searchParams.get("status");
+  const posthog = usePostHog();
+  const token = searchParams.get("token");
+  // L-2: in-flight Paystack transactions initialized BEFORE this deploy carry
+  // the legacy `callback_url=/subscribe?status=success`. Paystack's hosted
+  // fallback then appends `?reference=X` producing `?status=success?reference=X`,
+  // which Next.js parses as a single key `status` with value `success?reference=X`.
+  // Extract the reference from that malformed string as a fallback.
+  const rawStatusParam = searchParams.get("status");
+  const embeddedRef = /[?&]reference=([^&]+)/.exec(rawStatusParam ?? "")?.[1] ?? null;
+  const refParam =
+    searchParams.get("reference") ??
+    searchParams.get("trxref") ??
+    (embeddedRef ? decodeURIComponent(embeddedRef) : null);
   const emailParam = searchParams.get("email");
   const planParam = searchParams.get("plan");
   const cycleParam = searchParams.get("cycle");
+  const typeParam = searchParams.get("type");
 
+  // ----- Prices fetched from backend (single source of truth) -----
+  const [plans, setPlans] = useState<PlansResponse["data"] | null>(null);
+  const [plansError, setPlansError] = useState<string | null>(null);
+
+  // ----- Token-mode identity state -----
+  const [identity, setIdentity] = useState<IdentityResponse["data"] | null>(null);
+  const [identityError, setIdentityError] = useState<string | null>(null);
+  const [consentChecked, setConsentChecked] = useState(false);
+
+  // ----- Checkout state -----
+  const [checkoutMode, setCheckoutMode] = useState<CheckoutMode>(
+    typeParam === "coin_pack" ? "coin_pack" : "subscription",
+  );
   const [selectedPlan, setSelectedPlan] = useState<PlanId>(
-    planParam === "standard" || planParam === "premium" ? planParam : "premium"
+    planParam === "standard" ? "standard" : "premium",
   );
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(
-    cycleParam === "monthly" || cycleParam === "annual" ? cycleParam : "annual"
+    cycleParam === "monthly" ? "monthly" : "annual",
   );
+  const [selectedPackId, setSelectedPackId] = useState<string>("medium");
   const [email, setEmail] = useState(emailParam ?? "");
+
   const [loading, setLoading] = useState(false);
   const [paystackReady, setPaystackReady] = useState(false);
-  const [success, setSuccess] = useState(statusParam === "success");
 
-  const plan = PLANS[selectedPlan];
-  const price = billingCycle === "annual" ? plan.annualPriceGHS : plan.monthlyPriceGHS;
+  // ----- Success-state (verified) -----
+  const [success, setSuccess] = useState(false);
+  const [successDetails, setSuccessDetails] = useState<VerifyResponse["data"] | null>(null);
+  // If the URL has a ?reference, Paystack bounced the user back from checkout —
+  // show the "verifying" spinner immediately to avoid a flash of the form.
+  const [verifying, setVerifying] = useState(!!refParam);
+  const [verifyPending, setVerifyPending] = useState(false);
 
+  // ---------------------------------------------------------------
   // Load Paystack inline script
+  // ---------------------------------------------------------------
   useEffect(() => {
-    if ((window as any).PaystackPop) {
+    if (window.PaystackPop) {
       setPaystackReady(true);
       return;
     }
@@ -96,86 +169,331 @@ function SubscribeContent() {
     document.head.appendChild(script);
   }, []);
 
-  const handlePayment = useCallback(async () => {
-    if (!email.trim()) {
-      toast.error("Please enter your email address");
+  // ---------------------------------------------------------------
+  // Fetch plans (pricing source of truth)
+  // ---------------------------------------------------------------
+  useEffect(() => {
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/payment/plans`, { signal: ctrl.signal });
+        const json = (await res.json()) as PlansResponse;
+        if (json.success) {
+          setPlans(json.data);
+        } else {
+          setPlansError("Could not load pricing — please refresh.");
+        }
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        setPlansError("Could not load pricing — please refresh.");
+      }
+    })();
+    return () => ctrl.abort();
+  }, []);
+
+  // ---------------------------------------------------------------
+  // Token mode — fetch identity
+  // ---------------------------------------------------------------
+  useEffect(() => {
+    if (!token) return;
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(
+          `${BACKEND_URL}/payment/identity?token=${encodeURIComponent(token)}`,
+          { signal: ctrl.signal },
+        );
+        const json = (await res.json()) as IdentityResponse;
+        if (!json.success || !json.data) {
+          setIdentityError(json.error ?? "This checkout link has expired.");
+          return;
+        }
+        setIdentity(json.data);
+        // Align selectors with the token's intent
+        setCheckoutMode(json.data.type);
+        if (json.data.plan) setSelectedPlan(json.data.plan);
+        if (json.data.cycle) setBillingCycle(json.data.cycle);
+        if (json.data.packId) setSelectedPackId(json.data.packId);
+        posthog?.capture("subscribe_identity_loaded", {
+          type: json.data.type,
+          conflicting_provider: json.data.conflictingProvider,
+        });
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        setIdentityError("Couldn't load your account details. Please reopen from the app.");
+      }
+    })();
+    return () => ctrl.abort();
+  }, [token, posthog]);
+
+  // ---------------------------------------------------------------
+  // Success-state — verify server-side before showing "all set".
+  // Triggered by presence of `?reference=…` (Paystack appends it on redirect);
+  // `?status=success` is a historical hint but not required.
+  // ---------------------------------------------------------------
+  useEffect(() => {
+    if (!refParam) {
+      setVerifying(false);
       return;
     }
+    const ctrl = new AbortController();
+    // L-4: a ref we flip on unmount so the recursive setTimeout poll can
+    // bail out without calling setState on a dead component.
+    let cancelled = false;
+    let pendingTimer: ReturnType<typeof setTimeout> | null = null;
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      toast.error("Please enter a valid email address");
-      return;
+    const shouldKeepPolling = (status: string | undefined, pending: boolean | undefined) =>
+      !!pending || status === "unknown" || status === "ongoing" || status === "pending";
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `${BACKEND_URL}/payment/verify?reference=${encodeURIComponent(refParam)}`,
+          { signal: ctrl.signal },
+        );
+        if (cancelled) return;
+        const json = (await res.json()) as VerifyResponse;
+        if (cancelled) return;
+        if (json.success && json.data.verified) {
+          setSuccess(true);
+          setSuccessDetails(json.data);
+          setVerifying(false);
+          posthog?.capture("subscribe_verified", {
+            plan: json.data.plan,
+            status: json.data.status,
+          });
+          return;
+        }
+        // M-1: also poll when the backend reports status='unknown' — that's
+        // the default when Paystack's verify API returned a status string our
+        // backend didn't map (e.g. brief 'ongoing' during settlement race).
+        if (json.success && shouldKeepPolling(json.data.status, json.data.pending)) {
+          // Webhook hasn't landed yet — poll a few times before giving up.
+          // 4 attempts × 3s = 12s, matching typical Paystack webhook latency.
+          let attempts = 0;
+          const maxAttempts = 4;
+          const poll = async () => {
+            if (cancelled) return;
+            attempts++;
+            try {
+              const r = await fetch(
+                `${BACKEND_URL}/payment/verify?reference=${encodeURIComponent(refParam)}`,
+                { signal: ctrl.signal },
+              );
+              if (cancelled) return;
+              const j = (await r.json()) as VerifyResponse;
+              if (cancelled) return;
+              if (j.success && j.data.verified) {
+                setSuccess(true);
+                setSuccessDetails(j.data);
+                setVerifying(false);
+                return;
+              }
+            } catch (err) {
+              if ((err as Error).name === "AbortError") return;
+              /* retry on next tick */
+            }
+            if (cancelled) return;
+            if (attempts >= maxAttempts) {
+              // Still unverified after 12s — show the "pending" screen rather
+              // than bouncing the user back to the checkout form, which would
+              // imply the payment didn't land.
+              setVerifyPending(true);
+              setVerifying(false);
+              return;
+            }
+            pendingTimer = setTimeout(poll, 3000);
+          };
+          pendingTimer = setTimeout(poll, 3000);
+          return;
+        }
+        // Verify succeeded but payment is neither verified nor pending-ish —
+        // Paystack told us the charge failed or was abandoned. Drop back to
+        // the form with a toast so the user can retry; showing the "pending"
+        // screen here would be misleadingly optimistic.
+        toast.error("Payment was not completed. Please try again.");
+        setVerifying(false);
+      } catch (err) {
+        if (cancelled) return;
+        if ((err as Error).name === "AbortError") return;
+        // L7: Network failure on the initial verify call. The charge might
+        // have gone through — bounce to the pending screen rather than the
+        // checkout form, which would incorrectly imply "try again".
+        setVerifyPending(true);
+        setVerifying(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      ctrl.abort();
+      if (pendingTimer) clearTimeout(pendingTimer);
+    };
+  }, [refParam, posthog]);
+
+  // Analytics: page view
+  useEffect(() => {
+    posthog?.capture("subscribe_page_viewed", {
+      has_token: !!token,
+      type_param: typeParam,
+    });
+  }, [posthog, token, typeParam]);
+
+  // ---------------------------------------------------------------
+  // Derived pricing
+  // ---------------------------------------------------------------
+  const currentPrice = useMemo(() => {
+    if (!plans) return null;
+    if (checkoutMode === "coin_pack") {
+      const pack = plans.coinPacks.find((p) => p.id === selectedPackId);
+      return pack ? { amount: pack.priceGhs, display: pack.label } : null;
+    }
+    const p = plans.plans[selectedPlan];
+    const amount = billingCycle === "annual" ? p.annualPrice : p.monthlyPrice;
+    return { amount, display: formatGhs(amount) };
+  }, [plans, checkoutMode, selectedPackId, selectedPlan, billingCycle]);
+
+  const payDisabled = useMemo(() => {
+    if (loading) return true;
+    if (plansError || !plans || !currentPrice) return true;
+    if (identityError) return true;
+    if (token && !identity) return true;  // still loading identity
+    if (token && identity && !consentChecked) return true;
+    if (token && identity?.conflictingProvider) return true;
+    return !token && !email.trim();
+  }, [loading, plansError, plans, currentPrice, identityError, token, identity, consentChecked, email]);
+
+  // ---------------------------------------------------------------
+  // Handle payment
+  // ---------------------------------------------------------------
+  const handlePayment = useCallback(async () => {
+    if (!plans) return;
+
+    // Anonymous path — validate email format client-side before hitting backend.
+    if (!token) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        toast.error("Please enter a valid email address");
+        return;
+      }
     }
 
     setLoading(true);
+    posthog?.capture("subscribe_pay_initialized", {
+      mode: checkoutMode,
+      plan: selectedPlan,
+      cycle: billingCycle,
+      pack_id: selectedPackId,
+      has_token: !!token,
+    });
 
     try {
-      // 1. Initialize transaction on backend
+      const body: Record<string, unknown> = token
+        ? { token, consent: consentChecked }
+        : {
+            email: email.trim(),
+            type: checkoutMode,
+            ...(checkoutMode === "subscription"
+              ? { plan: selectedPlan, periodType: billingCycle }
+              : { packId: selectedPackId }),
+          };
+
       const res = await fetch(`${BACKEND_URL}/payment/initialize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          plan: selectedPlan,
-          periodType: billingCycle,
-        }),
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(15_000),
       });
-
       const data = await res.json();
 
       if (!data.success) {
-        toast.error(data.error ?? "Failed to initialize payment");
+        if (data.code === "ALREADY_SUBSCRIBED") {
+          toast.error(data.error ?? "You already have an active subscription on another platform.");
+        } else if (res.status === 429) {
+          toast.error("Too many attempts. Please wait a minute and try again.");
+        } else {
+          toast.error(data.error ?? "Failed to initialize payment");
+        }
+        posthog?.capture("subscribe_pay_failed", { stage: "initialize", status: res.status });
         setLoading(false);
         return;
       }
 
-      // 2. Open Paystack popup
-      const PaystackPop = (window as any).PaystackPop;
-      if (!PaystackPop) {
-        // Fallback: redirect to Paystack's hosted checkout
+      const PP = window.PaystackPop;
+      if (!PP) {
         window.location.href = data.data.authorizationUrl;
         return;
       }
 
-      const popup = new PaystackPop();
+      const popup = new PP();
       popup.resumeTransaction(data.data.accessCode, {
         onSuccess: () => {
-          setSuccess(true);
-          toast.success("Payment successful!");
+          posthog?.capture("subscribe_pay_succeeded", {
+            reference: data.data.reference,
+            mode: checkoutMode,
+          });
+          // Bounce through ?reference=… so refresh/share is safe. Verify runs
+          // server-side; the success screen detects "pack vs sub" from the
+          // transaction row, not the URL.
+          const query = new URLSearchParams({ reference: data.data.reference });
+          window.location.search = `?${query.toString()}`;
         },
         onCancel: () => {
+          posthog?.capture("subscribe_pay_cancelled");
           toast.info("Payment cancelled");
+          setLoading(false);
         },
         onError: () => {
+          posthog?.capture("subscribe_pay_failed", { stage: "popup" });
           toast.error("Payment failed. Please try again.");
+          setLoading(false);
         },
       });
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    } finally {
+    } catch (err) {
+      if ((err as Error).name === "TimeoutError") {
+        toast.error("Request timed out. Please check your connection and try again.");
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
+      posthog?.capture("subscribe_pay_failed", { stage: "network" });
       setLoading(false);
     }
-  }, [email, selectedPlan, billingCycle]);
+  }, [plans, token, consentChecked, email, checkoutMode, selectedPlan, billingCycle, selectedPackId, posthog]);
 
-  // Success state
-  if (success) {
+  // =================================================================
+  // Render — verifying success
+  // =================================================================
+  if (verifying) {
+    return (
+      <>
+        <Navbar />
+        <main className="max-w-[600px] mx-auto px-6 py-24 text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-warm-accent" />
+          <p className="text-muted-foreground">Confirming your payment…</p>
+        </main>
+        <BottomBar />
+      </>
+    );
+  }
+
+  // =================================================================
+  // Render — payment received but webhook still processing
+  // =================================================================
+  if (verifyPending) {
     return (
       <>
         <Navbar />
         <main className="max-w-[600px] mx-auto px-6 py-24 text-center">
           <div className="animate-fade-in-up">
-            <div className="w-20 h-20 rounded-full bg-[#3A9E7A]/10 flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-[#3A9E7A]" />
+            <div className="w-20 h-20 rounded-full bg-warm-accent/10 flex items-center justify-center mx-auto mb-6">
+              <Loader2 className="w-10 h-10 text-warm-accent animate-spin" />
             </div>
             <h1 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-4">
-              You&apos;re all set!
+              Payment received
             </h1>
             <p className="text-muted-foreground mb-2">
-              Your subscription is now active. Open the Closet Heritage app to start using your coins.
+              We&rsquo;re confirming your payment with our provider. This usually takes under a minute.
             </p>
             <p className="text-muted-foreground text-sm mb-8">
-              It may take a few seconds for your subscription to appear in the app.
-              If you don&apos;t see it right away, pull down to refresh.
+              You&rsquo;ll see the update in the Closet Heritage app shortly. It&rsquo;s safe to close this page.
             </p>
             <Link href="/">
               <Button className="rounded-none h-11 px-8 bg-btn-cta hover:bg-btn-cta-hover text-foreground font-body">
@@ -190,169 +508,380 @@ function SubscribeContent() {
     );
   }
 
+  // =================================================================
+  // Render — success (verified)
+  // =================================================================
+  if (success) {
+    const isPack = successDetails?.plan === "coin_pack";
+    return (
+      <>
+        <Navbar />
+        <main className="max-w-[600px] mx-auto px-6 py-24 text-center">
+          <div className="animate-fade-in-up">
+            <div className="w-20 h-20 rounded-full bg-[#3A9E7A]/10 flex items-center justify-center mx-auto mb-6">
+              <Check className="w-10 h-10 text-[#3A9E7A]" />
+            </div>
+            <h1 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-4">
+              {isPack ? "Coins on the way!" : "You're all set!"}
+            </h1>
+            <p className="text-muted-foreground mb-2">
+              {isPack
+                ? "Your coins have been added to your account. Open the Closet Heritage app to start using them."
+                : "Your subscription is now active. Open the Closet Heritage app to start using your coins."}
+            </p>
+            <p className="text-muted-foreground text-sm mb-8">
+              It may take a few seconds to appear in the app. If you don&apos;t see it right away, pull down to refresh.
+            </p>
+            <Link href="/">
+              <Button className="rounded-none h-11 px-8 bg-btn-cta hover:bg-btn-cta-hover text-foreground font-body">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to home
+              </Button>
+            </Link>
+          </div>
+        </main>
+        <BottomBar />
+      </>
+    );
+  }
+
+  // =================================================================
+  // Render — the checkout UI
+  // =================================================================
+  const plan = plans?.plans[selectedPlan];
+  const pack = plans?.coinPacks.find((p) => p.id === selectedPackId);
+
   return (
     <>
       <Navbar />
-      <main className="max-w-[920px] mx-auto px-6 lg:px-12 py-16 md:py-24">
+      <main className="max-w-[920px] mx-auto px-6 lg:px-12 py-12 md:py-20">
         {/* Header */}
-        <div className="text-center mb-12 animate-fade-in-up">
+        <div className="text-center mb-10 animate-fade-in-up">
           <div className="w-16 h-16 rounded-full bg-warm-accent/15 flex items-center justify-center mx-auto mb-5">
-            <Crown className="w-8 h-8 text-warm-accent" />
+            {checkoutMode === "coin_pack" ? (
+              <Coins className="w-8 h-8 text-warm-accent" />
+            ) : (
+              <Crown className="w-8 h-8 text-warm-accent" />
+            )}
           </div>
           <h1 className="font-heading text-3xl md:text-4xl lg:text-[44px] font-bold text-foreground mb-3">
-            Subscribe to Closet Heritage
+            {checkoutMode === "coin_pack" ? "Buy coins" : "Subscribe to Closet Heritage"}
           </h1>
           <p className="text-muted-foreground max-w-[500px] mx-auto">
             Pay with Mobile Money (MTN MoMo, Telecel Cash, AirtelTigo) or card.
           </p>
         </div>
 
+        {/* Mode tabs — hidden when a token locks the intent (app already chose) */}
+        {!token && (
+          <div
+            className="flex border border-border mb-6 max-w-[420px] mx-auto"
+            role="tablist"
+            aria-label="Checkout type"
+          >
+            {(["subscription", "coin_pack"] as CheckoutMode[]).map((mode) => {
+              const selected = checkoutMode === mode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => setCheckoutMode(mode)}
+                  role="tab"
+                  aria-selected={selected}
+                  className={`flex-1 py-3 text-sm font-body font-medium transition-colors ${
+                    selected
+                      ? "bg-warm-accent/15 text-warm-accent border-b-2 border-warm-accent"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {mode === "subscription" ? "Subscribe" : "Buy coins"}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {plansError && (
+          <div className="max-w-[500px] mx-auto mb-6 p-4 border border-destructive/30 bg-destructive/5 text-destructive text-sm">
+            {plansError}
+          </div>
+        )}
+
+        {identityError && (
+          <div className="max-w-[500px] mx-auto mb-6 p-4 border border-destructive/30 bg-destructive/5 text-destructive text-sm text-center">
+            <AlertTriangle className="inline-block w-4 h-4 mr-1.5 -mt-0.5" />
+            {identityError}
+          </div>
+        )}
+
         <div className="grid md:grid-cols-[1fr_380px] gap-8 items-start">
-          {/* Left: Plan selection */}
+          {/* =============================================
+              LEFT — plan/pack selection
+              ============================================= */}
           <div className="animate-fade-in-up delay-1">
-            {/* Plan toggle */}
-            <div className="flex border border-border mb-6">
-              {(["standard", "premium"] as PlanId[]).map((tier) => {
-                const isSelected = selectedPlan === tier;
-                return (
+            {checkoutMode === "subscription" && plan && (
+              <>
+                <div
+                  className="flex border border-border mb-6"
+                  role="tablist"
+                  aria-label="Plan tier"
+                >
+                  {(["standard", "premium"] as PlanId[]).map((tier) => {
+                    const selected = selectedPlan === tier;
+                    return (
+                      <button
+                        key={tier}
+                        onClick={() => !token && setSelectedPlan(tier)}
+                        disabled={!!token && selectedPlan !== tier}
+                        role="tab"
+                        aria-selected={selected}
+                        className={`flex-1 py-3 text-sm font-body font-medium transition-colors ${
+                          selected
+                            ? "bg-warm-accent/15 text-warm-accent border-b-2 border-warm-accent"
+                            : "text-muted-foreground hover:text-foreground disabled:opacity-50"
+                        }`}
+                      >
+                        {tier === "standard" ? "Standard" : "Premium"}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-6">
                   <button
-                    key={tier}
-                    onClick={() => setSelectedPlan(tier)}
-                    className={`flex-1 py-3 text-sm font-body font-medium transition-colors ${
-                      isSelected
-                        ? "bg-warm-accent/15 text-warm-accent border-b-2 border-warm-accent"
-                        : "text-muted-foreground hover:text-foreground"
+                    onClick={() => !token && setBillingCycle("annual")}
+                    disabled={!!token && billingCycle !== "annual"}
+                    aria-pressed={billingCycle === "annual"}
+                    className={`relative p-4 border text-left transition-colors ${
+                      billingCycle === "annual"
+                        ? "border-warm-accent bg-warm-accent/5"
+                        : "border-border hover:border-warm-accent/40 disabled:opacity-50"
                     }`}
                   >
-                    {tier === "standard" ? "Standard" : "Premium"}
+                    <span className="absolute -top-2.5 left-3 px-2 py-0.5 bg-[#3A9E7A] text-white text-[10px] font-medium">
+                      Save ~16%
+                    </span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium">Yearly</span>
+                      <div
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          billingCycle === "annual" ? "border-warm-accent bg-warm-accent" : "border-muted-foreground"
+                        }`}
+                      >
+                        {billingCycle === "annual" && <Check className="w-2.5 h-2.5 text-white" />}
+                      </div>
+                    </div>
+                    <div className="text-xl font-heading font-bold">
+                      {formatGhs(plan.annualPrice)}
+                      <span className="text-sm font-body text-muted-foreground">/year</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatGhs(Math.round(plan.annualPrice / 12))}/mo
+                    </div>
                   </button>
-                );
-              })}
-            </div>
 
-            {/* Billing cycle */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {/* Annual */}
-              <button
-                onClick={() => setBillingCycle("annual")}
-                className={`relative p-4 border text-left transition-colors ${
-                  billingCycle === "annual"
-                    ? "border-warm-accent bg-warm-accent/5"
-                    : "border-border hover:border-warm-accent/40"
-                }`}
-              >
-                {plan.savingsPercent > 0 && (
-                  <span className="absolute -top-2.5 left-3 px-2 py-0.5 bg-[#3A9E7A] text-white text-[10px] font-medium">
-                    Save {plan.savingsPercent}%
-                  </span>
-                )}
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">Yearly</span>
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      billingCycle === "annual" ? "border-warm-accent bg-warm-accent" : "border-muted-foreground"
+                  <button
+                    onClick={() => !token && setBillingCycle("monthly")}
+                    disabled={!!token && billingCycle !== "monthly"}
+                    aria-pressed={billingCycle === "monthly"}
+                    className={`p-4 border text-left transition-colors ${
+                      billingCycle === "monthly"
+                        ? "border-warm-accent bg-warm-accent/5"
+                        : "border-border hover:border-warm-accent/40 disabled:opacity-50"
                     }`}
                   >
-                    {billingCycle === "annual" && <Check className="w-2.5 h-2.5 text-white" />}
+                    <div className="flex items-center justify-between mb-1 mt-1">
+                      <span className="text-sm font-medium">Monthly</span>
+                      <div
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          billingCycle === "monthly" ? "border-warm-accent bg-warm-accent" : "border-muted-foreground"
+                        }`}
+                      >
+                        {billingCycle === "monthly" && <Check className="w-2.5 h-2.5 text-white" />}
+                      </div>
+                    </div>
+                    <div className="text-xl font-heading font-bold">
+                      {formatGhs(plan.monthlyPrice)}
+                      <span className="text-sm font-body text-muted-foreground">/mo</span>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="space-y-2.5 mb-6">
+                  {PLAN_FEATURES[selectedPlan].map((feature, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-[#3A9E7A]/12 flex items-center justify-center shrink-0">
+                        <Check className="w-3 h-3 text-[#3A9E7A]" />
+                      </div>
+                      <span className="text-sm">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-3 p-4 bg-section-warm border border-border">
+                  <Coins className="w-5 h-5 text-warm-accent shrink-0" />
+                  <div className="text-sm">
+                    <span className="font-medium">{plan.coinsPerMonth} coins</span> deposited on each renewal.
+                    Each virtual try-on costs 5 coins. Coins never expire.
                   </div>
                 </div>
-                <div className="text-xl font-heading font-bold">{plan.annualPriceGHS}<span className="text-sm font-body text-muted-foreground">/year</span></div>
-                <div className="text-xs text-muted-foreground">{plan.annualMonthlyGHS}/mo</div>
-              </button>
+              </>
+            )}
 
-              {/* Monthly */}
-              <button
-                onClick={() => setBillingCycle("monthly")}
-                className={`p-4 border text-left transition-colors ${
-                  billingCycle === "monthly"
-                    ? "border-warm-accent bg-warm-accent/5"
-                    : "border-border hover:border-warm-accent/40"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1 mt-1">
-                  <span className="text-sm font-medium">Monthly</span>
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      billingCycle === "monthly" ? "border-warm-accent bg-warm-accent" : "border-muted-foreground"
-                    }`}
-                  >
-                    {billingCycle === "monthly" && <Check className="w-2.5 h-2.5 text-white" />}
-                  </div>
-                </div>
-                <div className="text-xl font-heading font-bold">{plan.monthlyPriceGHS}<span className="text-sm font-body text-muted-foreground">/mo</span></div>
-              </button>
-            </div>
-
-            {/* Features */}
-            <div className="space-y-2.5 mb-6">
-              {plan.features.map((feature, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-[#3A9E7A]/12 flex items-center justify-center shrink-0">
-                    <Check className="w-3 h-3 text-[#3A9E7A]" />
-                  </div>
-                  <span className="text-sm">{feature}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Coins info */}
-            <div className="flex items-center gap-3 p-4 bg-section-warm border border-border">
-              <Coins className="w-5 h-5 text-warm-accent shrink-0" />
-              <div className="text-sm">
-                <span className="font-medium">{plan.coinsPerMonth} coins</span> deposited on each renewal.
-                Each virtual try-on costs 5 coins. Coins never expire.
+            {checkoutMode === "coin_pack" && plans && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground mb-2">
+                  One-time coin pack. Non-refundable, never expires.
+                </p>
+                {plans.coinPacks.map((p) => {
+                  const selected = selectedPackId === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => !token && setSelectedPackId(p.id)}
+                      disabled={!!token && selectedPackId !== p.id}
+                      aria-pressed={selected}
+                      className={`w-full p-4 border text-left transition-colors ${
+                        selected
+                          ? "border-warm-accent bg-warm-accent/5"
+                          : "border-border hover:border-warm-accent/40 disabled:opacity-50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-lg font-heading font-semibold">{p.coins} coins</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            ~{Math.floor(p.coins / 5)} try-ons
+                          </div>
+                        </div>
+                        <div className="text-lg font-heading font-bold">{p.label}</div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Right: Checkout form */}
+          {/* =============================================
+              RIGHT — checkout card
+              ============================================= */}
           <div className="animate-fade-in-up delay-2">
             <div className="border border-border p-6">
               <h2 className="font-heading text-lg font-semibold mb-1">Checkout</h2>
               <p className="text-sm text-muted-foreground mb-6">
-                {plan.name} · {billingCycle === "annual" ? "Annual" : "Monthly"} · {price}
+                {checkoutMode === "subscription" && plan
+                  ? `${plan.name} · ${billingCycle === "annual" ? "Annual" : "Monthly"} · ${currentPrice?.display ?? ""}`
+                  : checkoutMode === "coin_pack" && pack
+                  ? `${pack.coins} coins · ${pack.label}`
+                  : "—"}
               </p>
 
-              {/* Email input */}
-              <label className="block text-sm font-medium mb-1.5">Email address</label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Use the same email you signed up with in the app.
-              </p>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full h-11 px-3 border border-border bg-background text-foreground text-sm rounded-none focus:outline-none focus:ring-2 focus:ring-warm-accent/50 focus:border-warm-accent mb-6"
-              />
+              {/* -----------------------------------
+                  Token mode — show name + consent
+                  ----------------------------------- */}
+              {token && identity && !identityError && (
+                <>
+                  <div className="border border-border p-4 mb-4 bg-surface-secondary/40">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-9 h-9 rounded-full bg-warm-accent/15 flex items-center justify-center shrink-0">
+                        <User className="w-4 h-4 text-warm-accent" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                          Paying as
+                        </div>
+                        <div className="text-base font-heading font-semibold truncate">
+                          {identity.firstName}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {identity.maskedEmail}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Pay button */}
+                  {identity.conflictingProvider && (
+                    <div className="mb-4 p-3 border border-destructive/30 bg-destructive/5 text-xs text-destructive flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>
+                        You already have an active{" "}
+                        {identity.conflictingProvider === "app_store"
+                          ? "Apple"
+                          : identity.conflictingProvider === "play_store"
+                          ? "Google Play"
+                          : identity.conflictingProvider}{" "}
+                        subscription. Cancel it in that store before subscribing here to avoid double charges.
+                      </span>
+                    </div>
+                  )}
+
+                  <label className="flex items-start gap-3 mb-6 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={consentChecked}
+                      onChange={(e) => setConsentChecked(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 accent-warm-accent"
+                      aria-label="Confirm this is my account"
+                    />
+                    <span className="text-xs text-muted-foreground leading-relaxed">
+                      I confirm I&rsquo;m {identity.firstName} and I authorize this payment for my
+                      Closet Heritage account.
+                    </span>
+                  </label>
+                </>
+              )}
+
+              {/* -----------------------------------
+                  Anonymous mode — email entry
+                  ----------------------------------- */}
+              {!token && (
+                <>
+                  <label htmlFor="email" className="block text-sm font-medium mb-1.5">
+                    Email address
+                  </label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Use the same email you signed up with in the app.
+                  </p>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    className="w-full h-11 px-3 border border-border bg-background text-foreground text-sm rounded-none focus:outline-none focus:ring-2 focus:ring-warm-accent/50 focus:border-warm-accent mb-6"
+                  />
+                </>
+              )}
+
               <Button
                 onClick={handlePayment}
-                disabled={loading}
+                disabled={payDisabled || !paystackReady}
                 className="w-full rounded-none h-12 bg-foreground text-background hover:bg-foreground/90 font-body text-sm"
+                aria-label={`Pay ${currentPrice?.display ?? ""}`}
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
+                ) : !paystackReady ? (
+                  "Loading secure checkout…"
                 ) : (
-                  `Pay ${price}`
+                  `Pay ${currentPrice?.display ?? ""}`
                 )}
               </Button>
 
-              {/* Payment methods */}
               <p className="text-xs text-muted-foreground text-center mt-4">
                 MTN MoMo · Telecel Cash · AirtelTigo · Visa · Mastercard
               </p>
 
-              {/* Terms */}
               <div className="mt-6 pt-4 border-t border-border">
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  By subscribing, you agree to our{" "}
+                  By paying, you agree to our{" "}
                   <Link href="/terms" className="text-warm-accent hover:underline">Terms of Service</Link>
                   {" "}and{" "}
                   <Link href="/privacy" className="text-warm-accent hover:underline">Privacy Policy</Link>.
-                  Your subscription does not auto-renew via mobile money.
-                  You&apos;ll receive a reminder before each billing period.
+                  {checkoutMode === "subscription"
+                    ? " Your subscription does not auto-renew via mobile money — you'll receive a reminder before each billing period."
+                    : " Coins are non-refundable and do not expire."}
                 </p>
               </div>
             </div>

@@ -4,7 +4,7 @@
     "details": [
       {
         "appID": "CF5486396H.com.closetheritage.app",
-        "paths": ["/shared/*"]
+        "paths": ["/shared/*", "/invite/*"]
       }
     ]
   }
