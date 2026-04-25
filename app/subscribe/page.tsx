@@ -357,16 +357,26 @@ function SubscribeContent() {
     if (plansError || !plans || !currentPrice) return true;
     if (identityError) return true;
     if (token && !identity) return true;  // still loading identity
-    if (token && identity && !consentChecked) return true;
     if (token && identity?.conflictingProvider) return true;
+    // NOTE: consent is validated inside handlePayment with a toast instead of
+    // disabling the button silently — users were tapping an unlit button with
+    // no feedback on why nothing happened.
     return !token && !email.trim();
-  }, [loading, plansError, plans, currentPrice, identityError, token, identity, consentChecked, email]);
+  }, [loading, plansError, plans, currentPrice, identityError, token, identity, email]);
 
   // ---------------------------------------------------------------
   // Handle payment
   // ---------------------------------------------------------------
   const handlePayment = useCallback(async () => {
     if (!plans) return;
+
+    // Token path — require explicit consent check. Doing this here (instead of
+    // disabling the Pay button via payDisabled) gives the user actionable
+    // feedback when they tap without checking the box.
+    if (token && identity && !consentChecked) {
+      toast.error("Please confirm your account by checking the box above");
+      return;
+    }
 
     // Anonymous path — validate email format client-side before hitting backend.
     if (!token) {
@@ -386,8 +396,18 @@ function SubscribeContent() {
     });
 
     try {
+      // Token path: always send the current selector state so backend honors
+      // any plan/cycle/pack/mode change the user made on the web page after
+      // the token was issued in the app.
       const body: Record<string, unknown> = token
-        ? { token, consent: consentChecked }
+        ? {
+            token,
+            consent: consentChecked,
+            type: checkoutMode,
+            ...(checkoutMode === "subscription"
+              ? { plan: selectedPlan, periodType: billingCycle }
+              : { packId: selectedPackId }),
+          }
         : {
             email: email.trim(),
             type: checkoutMode,
@@ -456,7 +476,7 @@ function SubscribeContent() {
       posthog?.capture("subscribe_pay_failed", { stage: "network" });
       setLoading(false);
     }
-  }, [plans, token, consentChecked, email, checkoutMode, selectedPlan, billingCycle, selectedPackId, posthog]);
+  }, [plans, token, identity, consentChecked, email, checkoutMode, selectedPlan, billingCycle, selectedPackId, posthog]);
 
   // =================================================================
   // Render — verifying success
