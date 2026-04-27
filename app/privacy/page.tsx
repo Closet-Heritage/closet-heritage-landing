@@ -177,11 +177,16 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc pl-6 mt-3 space-y-1.5">
               <li>
-                Your images and related text (e.g., occasion, vibe) are sent to
-                Google&apos;s AI services for processing — specifically for
-                photo validation, item detection, clothing tagging, background
-                removal, hallucination verification, and try-on image
-                generation
+                Your clothing photos and avatar photo are sent to Google&apos;s
+                AI services for processing — specifically for photo validation,
+                item detection, clothing tagging, background removal,
+                hallucination verification, and try-on image generation. For
+                virtual try-on we additionally send the gender you selected
+                during onboarding so the rendered image is anatomically
+                consistent. <strong>We do not send</strong> your occasion,
+                style, vibe, or weather preferences to Google — outfit
+                suggestions are computed by our own backend using a non-AI
+                algorithm against the AI-generated tags already on your items
               </li>
               <li>
                 <strong>Paid tier — no training use:</strong> We use
