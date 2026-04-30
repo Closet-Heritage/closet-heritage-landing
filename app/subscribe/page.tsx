@@ -80,22 +80,23 @@ function formatGhs(pesewas: number): string {
   return `GHS ${(pesewas / 100).toFixed(2)}`;
 }
 
-// Subscription feature lists (marketing copy, not pricing — safe to keep static)
+// Subscription feature lists — kept generic to avoid locking us into specific
+// per-feature claims; matches the mobile paywall (which dropped the "X try-ons
+// per month" math after Apple's Jan 2026 paywall guidance + UX redesign).
 const PLAN_FEATURES: Record<PlanId, string[]> = {
   standard: [
-    "~10 virtual try-ons each month",
-    "~50 outfit generations",
+    "50 coins every month",
+    "AI virtual try-on with your photo",
+    "Smart outfit suggestions",
     "Matching set detection",
-    "Share outfits with friends",
-    "Unlimited wardrobe items",
+    "Share outfits & get feedback",
   ],
   premium: [
-    "~20 virtual try-ons each month",
-    "~100 outfit generations",
+    "100 coins every month",
+    "AI virtual try-on with your photo",
+    "Smart outfit suggestions",
     "Matching set detection",
-    "Share outfits with friends",
-    "Unlimited wardrobe items",
-    "Priority AI processing",
+    "Share outfits & get feedback",
   ],
 };
 
@@ -103,6 +104,11 @@ function SubscribeContent() {
   const searchParams = useSearchParams();
   const posthog = usePostHog();
   const token = searchParams.get("token");
+  // Embedded mode: when the page is opened from inside the Closet Heritage app
+  // via a checkout token, hide the marketing site Navbar + BottomBar so the
+  // page feels like an in-app sheet. Standalone visits (no token) still get
+  // the regular site chrome.
+  const embedded = !!token;
   // L-2: in-flight Paystack transactions initialized BEFORE this deploy carry
   // the legacy `callback_url=/subscribe?status=success`. Paystack's hosted
   // fallback then appends `?reference=X` producing `?status=success?reference=X`,
@@ -135,9 +141,9 @@ function SubscribeContent() {
   const [selectedPlan, setSelectedPlan] = useState<PlanId>(
     planParam === "standard" ? "standard" : "premium",
   );
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>(
-    cycleParam === "monthly" ? "monthly" : "annual",
-  );
+  // v1 launch: monthly only (annual subs deferred to v1.1 — re-enable the cycle
+  // toggle below when annual SKUs are added to ASC + Play + RevenueCat).
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [selectedPackId, setSelectedPackId] = useState<string>("medium");
   const [email, setEmail] = useState(emailParam ?? "");
 
@@ -484,12 +490,12 @@ function SubscribeContent() {
   if (verifying) {
     return (
       <>
-        <Navbar />
+        {!embedded && <Navbar />}
         <main className="max-w-[600px] mx-auto px-6 py-24 text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-warm-accent" />
           <p className="text-muted-foreground">Confirming your payment…</p>
         </main>
-        <BottomBar />
+        {!embedded && <BottomBar />}
       </>
     );
   }
@@ -500,7 +506,7 @@ function SubscribeContent() {
   if (verifyPending) {
     return (
       <>
-        <Navbar />
+        {!embedded && <Navbar />}
         <main className="max-w-[600px] mx-auto px-6 py-24 text-center">
           <div className="animate-fade-in-up">
             <div className="w-20 h-20 rounded-full bg-warm-accent/10 flex items-center justify-center mx-auto mb-6">
@@ -523,7 +529,7 @@ function SubscribeContent() {
             </Link>
           </div>
         </main>
-        <BottomBar />
+        {!embedded && <BottomBar />}
       </>
     );
   }
@@ -535,7 +541,7 @@ function SubscribeContent() {
     const isPack = successDetails?.plan === "coin_pack";
     return (
       <>
-        <Navbar />
+        {!embedded && <Navbar />}
         <main className="max-w-[600px] mx-auto px-6 py-24 text-center">
           <div className="animate-fade-in-up">
             <div className="w-20 h-20 rounded-full bg-[#3A9E7A]/10 flex items-center justify-center mx-auto mb-6">
@@ -560,7 +566,7 @@ function SubscribeContent() {
             </Link>
           </div>
         </main>
-        <BottomBar />
+        {!embedded && <BottomBar />}
       </>
     );
   }
@@ -573,7 +579,7 @@ function SubscribeContent() {
 
   return (
     <>
-      <Navbar />
+      {!embedded && <Navbar />}
       <main className="max-w-[920px] mx-auto px-6 lg:px-12 py-12 md:py-20">
         {/* Header */}
         <div className="text-center mb-10 animate-fade-in-up">
@@ -666,64 +672,15 @@ function SubscribeContent() {
                   })}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  <button
-                    onClick={() => !token && setBillingCycle("annual")}
-                    disabled={!!token && billingCycle !== "annual"}
-                    aria-pressed={billingCycle === "annual"}
-                    className={`relative p-4 border text-left transition-colors ${
-                      billingCycle === "annual"
-                        ? "border-warm-accent bg-warm-accent/5"
-                        : "border-border hover:border-warm-accent/40 disabled:opacity-50"
-                    }`}
-                  >
-                    <span className="absolute -top-2.5 left-3 px-2 py-0.5 bg-[#3A9E7A] text-white text-[10px] font-medium">
-                      Save ~16%
-                    </span>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium">Yearly</span>
-                      <div
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                          billingCycle === "annual" ? "border-warm-accent bg-warm-accent" : "border-muted-foreground"
-                        }`}
-                      >
-                        {billingCycle === "annual" && <Check className="w-2.5 h-2.5 text-white" />}
-                      </div>
-                    </div>
-                    <div className="text-xl font-heading font-bold">
-                      {formatGhs(plan.annualPrice)}
-                      <span className="text-sm font-body text-muted-foreground">/year</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatGhs(Math.round(plan.annualPrice / 12))}/mo
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => !token && setBillingCycle("monthly")}
-                    disabled={!!token && billingCycle !== "monthly"}
-                    aria-pressed={billingCycle === "monthly"}
-                    className={`p-4 border text-left transition-colors ${
-                      billingCycle === "monthly"
-                        ? "border-warm-accent bg-warm-accent/5"
-                        : "border-border hover:border-warm-accent/40 disabled:opacity-50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1 mt-1">
-                      <span className="text-sm font-medium">Monthly</span>
-                      <div
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                          billingCycle === "monthly" ? "border-warm-accent bg-warm-accent" : "border-muted-foreground"
-                        }`}
-                      >
-                        {billingCycle === "monthly" && <Check className="w-2.5 h-2.5 text-white" />}
-                      </div>
-                    </div>
+                {/* v1: monthly only. When annual SKUs ship in v1.1, restore the 2-column toggle. */}
+                <div className="mb-6">
+                  <div className="p-4 border border-warm-accent bg-warm-accent/5">
+                    <div className="text-sm font-medium mb-1">Monthly subscription</div>
                     <div className="text-xl font-heading font-bold">
                       {formatGhs(plan.monthlyPrice)}
-                      <span className="text-sm font-body text-muted-foreground">/mo</span>
+                      <span className="text-sm font-body text-muted-foreground"> per month</span>
                     </div>
-                  </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2.5 mb-6">
@@ -740,8 +697,8 @@ function SubscribeContent() {
                 <div className="flex items-center gap-3 p-4 bg-section-warm border border-border">
                   <Coins className="w-5 h-5 text-warm-accent shrink-0" />
                   <div className="text-sm">
-                    <span className="font-medium">{plan.coinsPerMonth} coins</span> deposited on each renewal.
-                    Each virtual try-on costs 5 coins. Coins never expire.
+                    <span className="font-medium">{plan.coinsPerMonth} coins</span> deposited every month.
+                    Spend them on virtual try-on, smart outfit suggestions, and other premium features.
                   </div>
                 </div>
               </>
@@ -767,12 +724,7 @@ function SubscribeContent() {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-lg font-heading font-semibold">{p.coins} coins</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            ~{Math.floor(p.coins / 5)} try-ons
-                          </div>
-                        </div>
+                        <div className="text-lg font-heading font-semibold">{p.coins} coins</div>
                         <div className="text-lg font-heading font-bold">{p.label}</div>
                       </div>
                     </button>
@@ -908,7 +860,7 @@ function SubscribeContent() {
           </div>
         </div>
       </main>
-      <BottomBar />
+      {!embedded && <BottomBar />}
     </>
   );
 }
