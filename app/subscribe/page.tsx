@@ -52,6 +52,7 @@ interface PlansResponse {
 interface IdentityResponse {
   success: boolean;
   data?: {
+    userId: string;
     firstName: string;
     maskedEmail: string;
     type: CheckoutMode;
@@ -220,6 +221,13 @@ function SubscribeContent() {
         if (json.data.plan) setSelectedPlan(json.data.plan);
         if (json.data.cycle) setBillingCycle(json.data.cycle);
         if (json.data.packId) setSelectedPackId(json.data.packId);
+        // Cross-platform identity unification: mobile uses the same Supabase
+        // UUID as distinct_id, so identifying here merges the two sessions
+        // into one PostHog person and unlocks mobile→web funnels.
+        // Pass NO person properties — checkout_mode is per-visit, not per-user.
+        if (json.data.userId) {
+          posthog?.identify(json.data.userId);
+        }
         posthog?.capture("subscribe_identity_loaded", {
           type: json.data.type,
           conflicting_provider: json.data.conflictingProvider,

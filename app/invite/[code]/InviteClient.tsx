@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Copy, Check, Gift, Apple, Smartphone } from "lucide-react";
 import { toast } from "sonner";
+import { usePostHog } from "posthog-js/react";
 import { Button } from "@/components/ui/button";
 import {
   IOS_APP_STORE_URL,
@@ -35,9 +36,14 @@ export function InviteClient({ code }: { code: string }) {
     getPlatformServerSnapshot,
   );
   const [copied, setCopied] = useState(false);
+  const posthog = usePostHog();
 
   const playUrl = useMemo(() => buildPlayStoreUrl(code), [code]);
   const schemeUrl = useMemo(() => buildAppScheme(code), [code]);
+
+  useEffect(() => {
+    posthog?.capture("invite_page_viewed", { code, platform });
+  }, [code, platform, posthog]);
 
   const copyCode = async () => {
     try {
@@ -57,6 +63,7 @@ export function InviteClient({ code }: { code: string }) {
    * show a "Have a referral code?" screen where they can paste.
    */
   const handleIOSClaim = async () => {
+    posthog?.capture("invite_redirect", { code, platform: "ios", destination: "app_store" });
     try {
       await navigator.clipboard.writeText(code);
     } catch {
@@ -71,6 +78,7 @@ export function InviteClient({ code }: { code: string }) {
    * launch (see `app/index.tsx` in the mobile app).
    */
   const handleAndroidClaim = () => {
+    posthog?.capture("invite_redirect", { code, platform: "android", destination: "play_store" });
     window.location.href = playUrl;
   };
 
@@ -80,6 +88,7 @@ export function InviteClient({ code }: { code: string }) {
    * if nothing intercepted the navigation.
    */
   const handleOpenInApp = () => {
+    posthog?.capture("invite_open_in_app_attempted", { code, platform });
     const started = Date.now();
     const fallback = setTimeout(() => {
       if (Date.now() - started < 2500) {
