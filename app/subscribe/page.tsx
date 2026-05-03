@@ -107,9 +107,11 @@ function SubscribeContent() {
   const token = searchParams.get("token");
   // Embedded mode: when the page is opened from inside the Closet Heritage app
   // via a checkout token, hide the marketing site Navbar + BottomBar so the
-  // page feels like an in-app sheet. Standalone visits (no token) still get
-  // the regular site chrome.
-  const embedded = !!token;
+  // page feels like an in-app sheet. The `embedded=1` fallback preserves the
+  // flag across the post-payment bounce to `?reference=…` (which drops the
+  // single-use token from the URL) so the success screen can show app-aware
+  // copy ("you can close this page") instead of the web-visitor copy.
+  const embedded = !!token || searchParams.get("embedded") === "1";
   // L-2: in-flight Paystack transactions initialized BEFORE this deploy carry
   // the legacy `callback_url=/subscribe?status=success`. Paystack's hosted
   // fallback then appends `?reference=X` producing `?status=success?reference=X`,
@@ -466,8 +468,11 @@ function SubscribeContent() {
           });
           // Bounce through ?reference=… so refresh/share is safe. Verify runs
           // server-side; the success screen detects "pack vs sub" from the
-          // transaction row, not the URL.
+          // transaction row, not the URL. Preserve `embedded=1` so the
+          // reloaded page can still render app-aware success copy — the
+          // single-use HMAC token stays out of the URL.
           const query = new URLSearchParams({ reference: data.data.reference });
+          if (embedded) query.set("embedded", "1");
           window.location.search = `?${query.toString()}`;
         },
         onCancel: () => {
@@ -555,23 +560,36 @@ function SubscribeContent() {
             <div className="w-20 h-20 rounded-full bg-[#3A9E7A]/10 flex items-center justify-center mx-auto mb-6">
               <Check className="w-10 h-10 text-[#3A9E7A]" />
             </div>
-            <h1 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-4">
-              {isPack ? "Coins on the way!" : "You're all set!"}
-            </h1>
-            <p className="text-muted-foreground mb-2">
-              {isPack
-                ? "Your coins have been added to your account. Open the Closet Heritage app to start using them."
-                : "Your subscription is now active. Open the Closet Heritage app to start using your coins."}
-            </p>
-            <p className="text-muted-foreground text-sm mb-8">
-              It may take a few seconds to appear in the app. If you don&apos;t see it right away, pull down to refresh.
-            </p>
-            <Link href="/">
-              <Button className="rounded-none h-11 px-8 bg-btn-cta hover:bg-btn-cta-hover text-foreground font-body">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to home
-              </Button>
-            </Link>
+            {embedded ? (
+              <>
+                <h1 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-4">
+                  Payment confirmed
+                </h1>
+                <p className="text-muted-foreground mb-8">
+                  You can close this page — your {isPack ? "coins are" : "subscription is"} ready in the app.
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-4">
+                  {isPack ? "Coins on the way!" : "You're all set!"}
+                </h1>
+                <p className="text-muted-foreground mb-2">
+                  {isPack
+                    ? "Your coins have been added to your account. Open the Closet Heritage app to start using them."
+                    : "Your subscription is now active. Open the Closet Heritage app to start using your coins."}
+                </p>
+                <p className="text-muted-foreground text-sm mb-8">
+                  It may take a few seconds to appear in the app. If you don&apos;t see it right away, pull down to refresh.
+                </p>
+                <Link href="/">
+                  <Button className="rounded-none h-11 px-8 bg-btn-cta hover:bg-btn-cta-hover text-foreground font-body">
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to home
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </main>
         {!embedded && <BottomBar />}
