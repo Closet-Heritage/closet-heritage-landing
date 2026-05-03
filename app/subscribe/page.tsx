@@ -54,15 +54,20 @@ interface IdentityResponse {
   data?: {
     userId: string;
     firstName: string;
+    email: string;
     maskedEmail: string;
-    type: CheckoutMode;
-    plan: PlanId | null;
-    cycle: BillingCycle | null;
-    packId: string | null;
     conflictingProvider: string | null;
   };
   error?: string;
 }
+
+interface LookupByEmailResponse {
+  success: boolean;
+  data?: { firstName: string };
+  error?: string;
+}
+
+type Channel = "mobile_money" | "card";
 
 interface VerifyResponse {
   success: boolean;
@@ -127,6 +132,11 @@ function SubscribeContent() {
   const planParam = searchParams.get("plan");
   const cycleParam = searchParams.get("cycle");
   const typeParam = searchParams.get("type");
+  // Channel hint from the app's "Pay with Mobile Money" / "Pay with Card"
+  // buttons. Pre-selects the corresponding option in the channel toggle —
+  // user can still switch on the page.
+  const channelParam = searchParams.get("channel");
+  const packIdParam = searchParams.get("packId");
 
   // ----- Prices fetched from backend (single source of truth) -----
   const [plans, setPlans] = useState<PlansResponse["data"] | null>(null);
@@ -147,8 +157,21 @@ function SubscribeContent() {
   // v1 launch: monthly only (annual subs deferred to v1.1 — re-enable the cycle
   // toggle below when annual SKUs are added to ASC + Play + RevenueCat).
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-  const [selectedPackId, setSelectedPackId] = useState<string>("medium");
+  const [selectedPackId, setSelectedPackId] = useState<string>(
+    packIdParam === "small" || packIdParam === "medium" ? packIdParam : "medium",
+  );
   const [email, setEmail] = useState(emailParam ?? "");
+  const [selectedChannel, setSelectedChannel] = useState<Channel>(
+    channelParam === "card" ? "card" : "mobile_money",
+  );
+
+  // Anonymous-flow identity gate: user must enter their email and have it
+  // matched against an existing account before the Pay button activates.
+  // This prevents orphan transactions for emails not tied to a CH account.
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
+  const [confirmedFirstName, setConfirmedFirstName] = useState<string | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [lookingUp, setLookingUp] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [paystackReady, setPaystackReady] = useState(false);
@@ -218,11 +241,10 @@ function SubscribeContent() {
           return;
         }
         setIdentity(json.data);
-        // Align selectors with the token's intent
-        setCheckoutMode(json.data.type);
-        if (json.data.plan) setSelectedPlan(json.data.plan);
-        if (json.data.cycle) setBillingCycle(json.data.cycle);
-        if (json.data.packId) setSelectedPackId(json.data.packId);
+        // Token now carries identity only — product (sub vs pack, plan,
+        // packId) and channel come from URL params + user choice on the
+        // page. `?type`, `?plan`, `?cycle`, `?packId`, `?channel` are
+        // applied at state init time, not here.
         // Cross-platform identity unification: mobile uses the same Supabase
         // UUID as distinct_id, so identifying here merges the two sessions
         // into one PostHog person and unlocks mobile→web funnels.
@@ -231,7 +253,6 @@ function SubscribeContent() {
           posthog?.identify(json.data.userId);
         }
         posthog?.capture("subscribe_identity_loaded", {
-          type: json.data.type,
           conflicting_provider: json.data.conflictingProvider,
         });
       } catch (err) {
@@ -377,8 +398,60 @@ function SubscribeContent() {
     // NOTE: consent is validated inside handlePayment with a toast instead of
     // disabling the button silently — users were tapping an unlit button with
     // no feedback on why nothing happened.
-    return !token && !email.trim();
-  }, [loading, plansError, plans, currentPrice, identityError, token, identity, email]);
+    // Anonymous: email must be confirmed (Continue → backend lookup → matched
+    // an existing CH account) before Pay activates.
+    if (!token && !emailConfirmed) return true;
+    return false;
+  }, [loading, plansError, plans, currentPrice, identityError, token, identity, emailConfirmed]);
+
+  // ---------------------------------------------------------------
+  // Anonymous-flow email lookup (Continue button)
+  // ---------------------------------------------------------------
+  const handleContinue = useCallback(async () => {
+    setLookupError(null);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setLookupError("Please enter a valid email address.");
+      return;
+    }
+    setLookingUp(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/payment/lookup-by-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      const json = (await res.json()) as LookupByEmailResponse;
+      if (res.status === 429) {
+        setLookupError("Too many attempts. Please wait a minute and try again.");
+        return;
+      }
+      if (!json.success || !json.data) {
+        setLookupError(json.error ?? "We couldn't find this account.");
+        return;
+      }
+      setConfirmedFirstName(json.data.firstName);
+      setEmailConfirmed(true);
+    } catch (err) {
+      if ((err as Error).name === "TimeoutError") {
+        setLookupError("Request timed out. Please check your connection.");
+      } else {
+        setLookupError("Something went wrong. Please try again.");
+      }
+    } finally {
+      setLookingUp(false);
+    }
+  }, [email]);
+
+  // Editing the email after confirming → require re-confirmation.
+  const handleEmailChange = useCallback((value: string) => {
+    setEmail(value);
+    if (emailConfirmed) {
+      setEmailConfirmed(false);
+      setConfirmedFirstName(null);
+    }
+    setLookupError(null);
+  }, [emailConfirmed]);
 
   // ---------------------------------------------------------------
   // Handle payment
@@ -412,14 +485,14 @@ function SubscribeContent() {
     });
 
     try {
-      // Token path: always send the current selector state so backend honors
-      // any plan/cycle/pack/mode change the user made on the web page after
-      // the token was issued in the app.
+      // Token path: token carries identity only — current selector state
+      // is the source of truth for product + channel.
       const body: Record<string, unknown> = token
         ? {
             token,
             consent: consentChecked,
             type: checkoutMode,
+            channel: selectedChannel,
             ...(checkoutMode === "subscription"
               ? { plan: selectedPlan, periodType: billingCycle }
               : { packId: selectedPackId }),
@@ -427,6 +500,7 @@ function SubscribeContent() {
         : {
             email: email.trim(),
             type: checkoutMode,
+            channel: selectedChannel,
             ...(checkoutMode === "subscription"
               ? { plan: selectedPlan, periodType: billingCycle }
               : { packId: selectedPackId }),
@@ -495,7 +569,7 @@ function SubscribeContent() {
       posthog?.capture("subscribe_pay_failed", { stage: "network" });
       setLoading(false);
     }
-  }, [plans, token, identity, consentChecked, email, checkoutMode, selectedPlan, billingCycle, selectedPackId, posthog]);
+  }, [plans, token, identity, consentChecked, email, checkoutMode, selectedPlan, billingCycle, selectedPackId, selectedChannel, embedded, posthog]);
 
   // =================================================================
   // Render — verifying success
@@ -620,37 +694,36 @@ function SubscribeContent() {
             {checkoutMode === "coin_pack" ? "Buy coins" : "Subscribe to Closet Heritage"}
           </h1>
           <p className="text-muted-foreground max-w-[500px] mx-auto">
-            Pay with Mobile Money (MTN MoMo, Telecel Cash, AirtelTigo) or card.
+            Pay with Ghana Mobile Money or international card.
           </p>
         </div>
 
-        {/* Mode tabs — hidden when a token locks the intent (app already chose) */}
-        {!token && (
-          <div
-            className="flex border border-border mb-6 max-w-[420px] mx-auto"
-            role="tablist"
-            aria-label="Checkout type"
-          >
-            {(["subscription", "coin_pack"] as CheckoutMode[]).map((mode) => {
-              const selected = checkoutMode === mode;
-              return (
-                <button
-                  key={mode}
-                  onClick={() => setCheckoutMode(mode)}
-                  role="tab"
-                  aria-selected={selected}
-                  className={`flex-1 py-3 text-sm font-body font-medium transition-colors ${
-                    selected
-                      ? "bg-warm-accent/15 text-warm-accent border-b-2 border-warm-accent"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {mode === "subscription" ? "Subscribe" : "Buy coins"}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Mode tabs — always shown. Token users can change their mind here
+            (token now carries identity only; product is page-authoritative). */}
+        <div
+          className="flex border border-border mb-6 max-w-[420px] mx-auto"
+          role="tablist"
+          aria-label="Checkout type"
+        >
+          {(["subscription", "coin_pack"] as CheckoutMode[]).map((mode) => {
+            const selected = checkoutMode === mode;
+            return (
+              <button
+                key={mode}
+                onClick={() => setCheckoutMode(mode)}
+                role="tab"
+                aria-selected={selected}
+                className={`flex-1 py-3 text-sm font-body font-medium transition-colors ${
+                  selected
+                    ? "bg-warm-accent/15 text-warm-accent border-b-2 border-warm-accent"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {mode === "subscription" ? "Subscribe" : "Buy coins"}
+              </button>
+            );
+          })}
+        </div>
 
         {plansError && (
           <div className="max-w-[500px] mx-auto mb-6 p-4 border border-destructive/30 bg-destructive/5 text-destructive text-sm">
@@ -682,14 +755,13 @@ function SubscribeContent() {
                     return (
                       <button
                         key={tier}
-                        onClick={() => !token && setSelectedPlan(tier)}
-                        disabled={!!token && selectedPlan !== tier}
+                        onClick={() => setSelectedPlan(tier)}
                         role="tab"
                         aria-selected={selected}
                         className={`flex-1 py-3 text-sm font-body font-medium transition-colors ${
                           selected
                             ? "bg-warm-accent/15 text-warm-accent border-b-2 border-warm-accent"
-                            : "text-muted-foreground hover:text-foreground disabled:opacity-50"
+                            : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
                         {tier === "standard" ? "Standard" : "Premium"}
@@ -735,27 +807,32 @@ function SubscribeContent() {
                 <p className="text-sm text-muted-foreground mb-2">
                   One-time coin pack. Non-refundable, never expires.
                 </p>
-                {plans.coinPacks.map((p) => {
-                  const selected = selectedPackId === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => !token && setSelectedPackId(p.id)}
-                      disabled={!!token && selectedPackId !== p.id}
-                      aria-pressed={selected}
-                      className={`w-full p-4 border text-left transition-colors ${
-                        selected
-                          ? "border-warm-accent bg-warm-accent/5"
-                          : "border-border hover:border-warm-accent/40 disabled:opacity-50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="text-lg font-heading font-semibold">{p.coins} coins</div>
-                        <div className="text-lg font-heading font-bold">{p.label}</div>
-                      </div>
-                    </button>
-                  );
-                })}
+                {/* v1: only `small` and `medium` packs surfaced on the web — the
+                    220-coin `large` pack ships in v1.1 alongside the App Store /
+                    Play Store SKUs. Filter rather than gate so the page stays
+                    in sync with the app's COIN_PACKS list. */}
+                {plans.coinPacks
+                  .filter((p) => p.id === "small" || p.id === "medium")
+                  .map((p) => {
+                    const selected = selectedPackId === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelectedPackId(p.id)}
+                        aria-pressed={selected}
+                        className={`w-full p-4 border text-left transition-colors ${
+                          selected
+                            ? "border-warm-accent bg-warm-accent/5"
+                            : "border-border hover:border-warm-accent/40"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="text-lg font-heading font-semibold">{p.coins} coins</div>
+                          <div className="text-lg font-heading font-bold">{p.label}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
               </div>
             )}
           </div>
@@ -775,12 +852,12 @@ function SubscribeContent() {
               </p>
 
               {/* -----------------------------------
-                  Token mode — show name + consent
+                  Token mode — show name + consent (full email)
                   ----------------------------------- */}
               {token && identity && !identityError && (
                 <>
                   <div className="border border-border p-4 mb-4 bg-surface-secondary/40">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-warm-accent/15 flex items-center justify-center shrink-0">
                         <User className="w-4 h-4 text-warm-accent" />
                       </div>
@@ -792,13 +869,13 @@ function SubscribeContent() {
                           {identity.firstName}
                         </div>
                         <div className="text-xs text-muted-foreground truncate">
-                          {identity.maskedEmail}
+                          {identity.email}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {identity.conflictingProvider && (
+                  {identity.conflictingProvider && checkoutMode === "subscription" && (
                     <div className="mb-4 p-3 border border-destructive/30 bg-destructive/5 text-xs text-destructive flex items-start gap-2">
                       <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                       <span>
@@ -822,15 +899,15 @@ function SubscribeContent() {
                       aria-label="Confirm this is my account"
                     />
                     <span className="text-xs text-muted-foreground leading-relaxed">
-                      I confirm I&rsquo;m {identity.firstName} and I authorize this payment for my
-                      Closet Heritage account.
+                      I confirm I&rsquo;m {identity.firstName} ({identity.email}) and I authorize this
+                      payment for my Closet Heritage account.
                     </span>
                   </label>
                 </>
               )}
 
               {/* -----------------------------------
-                  Anonymous mode — email entry
+                  Anonymous mode — email entry → Continue → confirm
                   ----------------------------------- */}
               {!token && (
                 <>
@@ -844,13 +921,81 @@ function SubscribeContent() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !emailConfirmed && !lookingUp) handleContinue();
+                    }}
                     placeholder="you@example.com"
                     autoComplete="email"
-                    className="w-full h-11 px-3 border border-border bg-background text-foreground text-sm rounded-none focus:outline-none focus:ring-2 focus:ring-warm-accent/50 focus:border-warm-accent mb-6"
+                    className="w-full h-11 px-3 border border-border bg-background text-foreground text-sm rounded-none focus:outline-none focus:ring-2 focus:ring-warm-accent/50 focus:border-warm-accent"
                   />
+
+                  {lookupError && (
+                    <p className="mt-2 text-xs text-destructive">{lookupError}</p>
+                  )}
+
+                  {!emailConfirmed && (
+                    <Button
+                      onClick={handleContinue}
+                      disabled={lookingUp || !email.trim()}
+                      className="w-full rounded-none h-11 mt-3 bg-warm-accent text-white hover:bg-warm-accent/90 font-body text-sm"
+                    >
+                      {lookingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : "Continue"}
+                    </Button>
+                  )}
+
+                  {emailConfirmed && confirmedFirstName && (
+                    <div className="border border-warm-accent/40 p-3 mt-3 mb-2 bg-warm-accent/5">
+                      <div className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-warm-accent shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium">Hi {confirmedFirstName}!</div>
+                          <div className="text-xs text-muted-foreground truncate">{email}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="h-4" />
                 </>
               )}
+
+              {/* -----------------------------------
+                  Channel toggle — narrows the Paystack popup to one method.
+                  Mobile Money is Ghana-only (Paystack rejects non-GH MoMo
+                  numbers anyway); Card works internationally. Pre-selected
+                  from `?channel=` query (set by app's MoMo / Card buttons).
+                  ----------------------------------- */}
+              <div className="mb-4">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+                  Payment method
+                </div>
+                <div className="flex border border-border" role="tablist" aria-label="Payment channel">
+                  {(["mobile_money", "card"] as Channel[]).map((ch) => {
+                    const selected = selectedChannel === ch;
+                    return (
+                      <button
+                        key={ch}
+                        onClick={() => setSelectedChannel(ch)}
+                        role="tab"
+                        aria-selected={selected}
+                        className={`flex-1 py-2.5 text-xs font-body font-medium transition-colors ${
+                          selected
+                            ? "bg-warm-accent/15 text-warm-accent border-b-2 border-warm-accent"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {ch === "mobile_money" ? "Mobile Money (Ghana)" : "Card (International)"}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                  {selectedChannel === "mobile_money"
+                    ? "MTN MoMo · Telecel Cash · AirtelTigo. Available for Ghana mobile money accounts only."
+                    : "Visa · Mastercard. Accepted worldwide."}
+                </p>
+              </div>
 
               <Button
                 onClick={handlePayment}
@@ -866,10 +1011,6 @@ function SubscribeContent() {
                   `Pay ${currentPrice?.display ?? ""}`
                 )}
               </Button>
-
-              <p className="text-xs text-muted-foreground text-center mt-4">
-                MTN MoMo · Telecel Cash · AirtelTigo · Visa · Mastercard
-              </p>
 
               <div className="mt-6 pt-4 border-t border-border">
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
