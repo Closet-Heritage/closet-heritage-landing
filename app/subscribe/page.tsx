@@ -949,7 +949,7 @@ function SubscribeContent() {
                       <div className="flex items-center gap-2">
                         <Check className="w-4 h-4 text-warm-accent shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium">Hi {confirmedFirstName}!</div>
+                          <div className="text-sm font-medium">Paying as {confirmedFirstName}!</div>
                           <div className="text-xs text-muted-foreground truncate">{email}</div>
                         </div>
                       </div>
