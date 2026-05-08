@@ -1,6 +1,6 @@
 "use client";
 
-import WaitlistForm from "./WaitlistForm";
+import AppStoreButtons from "./AppStoreButtons";
 import Reveal from "./Reveal";
 
 export default function FinalCTA() {
@@ -29,7 +29,7 @@ export default function FinalCTA() {
               Start using what you already own — better.
             </p>
             <div className="mt-8 flex justify-center">
-              <WaitlistForm />
+              <AppStoreButtons />
             </div>
           </div>
         </Reveal>

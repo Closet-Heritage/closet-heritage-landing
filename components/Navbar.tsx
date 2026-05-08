@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import WaitlistForm from "./WaitlistForm";
 
 const navLinks = [
   { label: "How it works", href: "/#how-it-works" },
@@ -14,6 +13,12 @@ const navLinks = [
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const handleScrollToDownload = useCallback(() => {
+    const target = document.getElementById("built-for-real");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
 
   return (
     <nav className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
@@ -43,7 +48,13 @@ export default function Navbar() {
           <Link href="/#footer" className="text-sm text-black hover:text-foreground transition-colors">
             Talk to us
           </Link>
-          <WaitlistForm className="text-sm" label="Join the beta" />
+          <Link
+            href="/#built-for-real"
+            onClick={handleScrollToDownload}
+            className="inline-flex items-center justify-center rounded-none h-10 px-4 text-sm bg-btn-cta text-foreground hover:bg-btn-cta-hover border border-border"
+          >
+            Get the app
+          </Link>
         </div>
 
         {/* Mobile hamburger */}
@@ -78,9 +89,18 @@ export default function Navbar() {
           >
             Talk to us
           </Link>
-          <WaitlistForm className="text-sm w-full" label="Join the beta" />
-        </div>
-      )}
-    </nav>
-  );
+          <Link
+            href="/#built-for-real"
+            className="inline-flex items-center justify-center rounded-none h-10 px-4 text-sm bg-btn-cta text-foreground hover:bg-btn-cta-hover border border-border w-full"
+            onClick={() => {
+              setMenuOpen(false);
+              handleScrollToDownload();
+            }}
+          >
+            Get the app
+          </Link>
+         </div>
+       )}
+     </nav>
+   );
 }

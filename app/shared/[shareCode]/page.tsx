@@ -9,6 +9,7 @@ import { ImageLightbox } from "./ImageLightbox";
 import { OutfitVisualStack } from "./OutfitVisualStack";
 import { FullscreenOverlay } from "./FullscreenOverlay";
 import { ViewTracker } from "./ViewTracker";
+import AppStoreButtons from "@/components/AppStoreButtons";
 
 // ============================================
 // TYPES
@@ -182,12 +183,7 @@ export default async function SharedOutfitPage({
               height={80}
             />
           </Link>
-          <Link
-            href="/#hero"
-            className="inline-block px-5 py-2 text-sm font-body font-semibold bg-btn-cta text-foreground hover:bg-btn-cta-hover border border-border transition-colors"
-          >
-            Get the app
-          </Link>
+          <AppStoreButtons size="sm" className="gap-2" />
         </div>
       </nav>
 
@@ -307,12 +303,7 @@ export default async function SharedOutfitPage({
             Closet Heritage helps you digitize your wardrobe, plan outfits with
             AI, and try them on virtually.
           </p>
-          <Link
-            href="/#hero"
-            className="inline-block px-8 py-3 bg-btn-cta text-foreground font-body font-semibold text-sm hover:bg-btn-cta-hover border border-border transition-colors"
-          >
-            Join the beta
-          </Link>
+          <AppStoreButtons variant="light" />
         </div>
       </main>
 

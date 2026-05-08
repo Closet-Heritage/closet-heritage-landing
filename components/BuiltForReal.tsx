@@ -1,74 +1,115 @@
 "use client";
 
 import Image from "next/image";
-import WaitlistForm from "./WaitlistForm";
+import { useEffect, useRef, useState } from "react";
+import AppStoreButtons from "./AppStoreButtons";
 import Reveal from "./Reveal";
 import { StaggerContainer, StaggerItem } from "./Reveal";
 
 const bullets = [
-  "Designed for everyday wear",
-  "Works with African and global fashion",
-  "No pressure to buy more clothes",
+	"Designed for everyday wear",
+	"Works with African and global fashion",
+	"No pressure to buy more clothes",
 ];
 
 const gallery = [
-  { src: "/images/gallery-1.png", alt: "Young African man in navy suit" },
-  { src: "/images/gallery-2.png", alt: "Person in orange sweater with green beanie and sunglasses" },
-  { src: "/images/gallery-3.png", alt: "African woman in blue-red print dress" },
-  { src: "/images/gallery-4.png", alt: "Stylish fashion look" },
+	{ src: "/images/gallery-1.png", alt: "Young African man in navy suit" },
+	{
+		src: "/images/gallery-2.png",
+		alt: "Person in orange sweater with green beanie and sunglasses",
+	},
+	{ src: "/images/gallery-3.png", alt: "African woman in blue-red print dress" },
+	{ src: "/images/gallery-4.png", alt: "Stylish fashion look" },
 ];
 
 export default function BuiltForReal() {
-  return (
-    <section className="py-8 md:py-12">
-      <div className="max-w-[1248px] mx-auto px-6 lg:px-12">
-        <div className="bg-section-warm rounded-[32px] py-10 md:py-14">
-          {/* Text content */}
-          <div className="px-8 md:px-12 pb-12">
-            <Reveal>
-              <h2 className="font-heading text-3xl md:text-4xl lg:text-[44px] font-semibold text-foreground leading-tight">
-                Built for real people, real wardrobes.
-              </h2>
-            </Reveal>
+	const sectionRef = useRef<HTMLElement | null>(null);
+	const [highlight, setHighlight] = useState(false);
 
-            <Reveal delay={0.1}>
-              <ul className="mt-6 space-y-2">
-                {bullets.map((bullet, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-foreground flex-shrink-0" />
-                    {bullet}
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
+	useEffect(() => {
+		const section = sectionRef.current;
+		if (!section) return undefined;
 
-            <Reveal delay={0.2}>
-              <div className="mt-8">
-                <WaitlistForm />
-              </div>
-            </Reveal>
-          </div>
+		let timeoutId: ReturnType<typeof setTimeout> | null = null;
+		const observer = new IntersectionObserver(
+			([entry]) => {
+				if (!entry?.isIntersecting) return;
+				setHighlight(true);
+				if (timeoutId) clearTimeout(timeoutId);
+				timeoutId = setTimeout(() => setHighlight(false), 1500);
+			},
+			{ threshold: 0.35 }
+		);
 
-          {/* Gallery */}
-          <div className="px-8 md:px-12 pb-4">
-            <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-4" staggerDelay={0.1}>
-              {gallery.map((img, i) => (
-                <StaggerItem key={i}>
-                  <div className="relative aspect-[3/4] overflow-hidden rounded-xl">
-                    <Image
-                      src={img.src}
-                      alt={img.alt}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 50vw, 25vw"
-                    />
-                  </div>
-                </StaggerItem>
-              ))}
-            </StaggerContainer>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+		observer.observe(section);
+		return () => {
+			observer.disconnect();
+			if (timeoutId) clearTimeout(timeoutId);
+		};
+	}, []);
+
+	return (
+		<section id="built-for-real" ref={sectionRef} className="py-8 md:py-12">
+			<div className="max-w-[1248px] mx-auto px-6 lg:px-12">
+				<div className="bg-section-warm rounded-[32px] py-10 md:py-14">
+					{/* Text content */}
+					<div className="px-8 md:px-12 pb-12">
+						<Reveal>
+							<h2 className="font-heading text-3xl md:text-4xl lg:text-[44px] font-semibold text-foreground leading-tight">
+								Built for real people, real wardrobes.
+							</h2>
+						</Reveal>
+
+						<Reveal delay={0.1}>
+							<ul className="mt-6 space-y-2">
+								{bullets.map((bullet, i) => (
+									<li
+										key={i}
+										className="flex items-center gap-3 text-sm text-muted-foreground"
+									>
+										<span className="w-1.5 h-1.5 rounded-full bg-foreground flex-shrink-0" />
+										{bullet}
+									</li>
+								))}
+							</ul>
+						</Reveal>
+
+						<Reveal delay={0.2}>
+							<div
+								className={`mt-8 inline-block rounded-[28px] transition-all duration-300 ${
+									highlight
+										? "ring-2 ring-warm-accent/60 ring-offset-4 ring-offset-background"
+										: ""
+								}`}
+							>
+								<AppStoreButtons />
+							</div>
+						</Reveal>
+					</div>
+
+					{/* Gallery */}
+					<div className="px-8 md:px-12 pb-4">
+						<StaggerContainer
+							className="grid grid-cols-2 md:grid-cols-4 gap-4"
+							staggerDelay={0.1}
+						>
+							{gallery.map((img, i) => (
+								<StaggerItem key={i}>
+									<div className="relative aspect-[3/4] overflow-hidden rounded-xl">
+										<Image
+											src={img.src}
+											alt={img.alt}
+											fill
+											className="object-cover"
+											sizes="(max-width: 768px) 50vw, 25vw"
+										/>
+									</div>
+								</StaggerItem>
+							))}
+						</StaggerContainer>
+					</div>
+				</div>
+			</div>
+		</section>
+	);
 }

@@ -1,13 +1,13 @@
 # Closet Heritage — Landing Page
 
-Marketing and waitlist landing page for [Closet Heritage](https://github.com/Closet-Heritage), an AI-powered wardrobe and outfit planning app.
+Marketing landing page for [Closet Heritage](https://github.com/Closet-Heritage), an AI-powered wardrobe and outfit planning app.
 
 ## Stack
 
 - **Next.js 16** (App Router, Turbopack)
 - **Tailwind CSS v4** with CSS variable theming
 - **Shadcn/UI** (Accordion, Button, Input, Dialog)
-- **Supabase** for waitlist email collection
+- **Supabase** for optional waitlist email collection
 - **TypeScript**
 
 ## Getting Started
@@ -40,7 +40,7 @@ app/
   layout.tsx              Root layout (fonts, metadata)
   page.tsx                Assembles all sections
   globals.css             Tailwind config, CSS variables, theme
-  api/waitlist/route.ts   POST endpoint — saves email to Supabase
+  api/waitlist/route.ts   POST endpoint — saves email to Supabase (optional)
 
 components/
   Navbar.tsx              Sticky nav, logo, links, mobile hamburger
@@ -54,7 +54,7 @@ components/
   FAQ.tsx                 Accordion with +/- icons
   Footer.tsx              Contact form + social links over bg image
   BottomBar.tsx           Logo, tagline, terms link
-  WaitlistForm.tsx        CTA button → modal with email input
+  WaitlistForm.tsx        CTA modal for email collection (optional)
   ui/                     Shadcn/UI components
 
 public/images/            Exported assets from Figma
@@ -70,7 +70,7 @@ Colors are defined as CSS variables in `globals.css` under `:root`, registered i
 - **Section backgrounds**: `--section-warm` (#FFF5E7)
 - **Fonts**: Playfair Display (headings) + Fira Code (body)
 
-## Waitlist API
+## Waitlist API (Optional)
 
 `POST /api/waitlist` with `{ "email": "user@example.com" }`.
 

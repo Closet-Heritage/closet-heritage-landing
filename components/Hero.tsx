@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import WaitlistForm from "./WaitlistForm";
+import AppStoreButtons from "./AppStoreButtons";
 import Reveal from "./Reveal";
 
 export default function Hero() {
@@ -25,7 +25,7 @@ export default function Hero() {
         </Reveal>
         <Reveal delay={0.35}>
           <div className="mt-8 flex justify-center">
-            <WaitlistForm />
+            <AppStoreButtons />
           </div>
         </Reveal>
       </div>

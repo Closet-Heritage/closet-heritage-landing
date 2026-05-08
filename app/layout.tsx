@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://closetheritage.com"),
   title: "Closet Heritage — Your Smart Digital Wardrobe",
   description:
-    "Digitize your wardrobe with AI, get smart outfit suggestions, and try them on virtually. Join the beta for the smartest way to get dressed.",
+    "Digitize your wardrobe with AI, get smart outfit suggestions, and try them on virtually. Download Closet Heritage on the App Store and Google Play.",
   openGraph: {
     title: "Closet Heritage — Your Smart Digital Wardrobe",
     description:

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import WaitlistForm from "./WaitlistForm";
+import AppStoreButtons from "./AppStoreButtons";
 import Reveal from "./Reveal";
 
 export default function Rediscover() {
@@ -19,7 +19,7 @@ export default function Rediscover() {
               repeating the same outfits and dress better without buying more
             </p>
             <div className="mt-8">
-              <WaitlistForm variant="light" />
+              <AppStoreButtons variant="light" />
             </div>
           </Reveal>
 

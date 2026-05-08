@@ -8,8 +8,7 @@ export const APP_SCHEME = "closet-heritage";
 
 export const IOS_APP_STORE_URL =
   process.env.NEXT_PUBLIC_APP_STORE_URL ||
-  // TODO: replace with real App Store URL once approved
-  "https://apps.apple.com/app/closet-heritage/id0000000000";
+  "https://apps.apple.com/gh/app/closet-heritage/id6760125292";
 
 export const ANDROID_PACKAGE = "com.closetheritage.app";
 
