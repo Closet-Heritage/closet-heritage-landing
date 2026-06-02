@@ -9,6 +9,7 @@ import { ImageLightbox } from "./ImageLightbox";
 import { OutfitVisualStack } from "./OutfitVisualStack";
 import { FullscreenOverlay } from "./FullscreenOverlay";
 import { ViewTracker } from "./ViewTracker";
+import { MobileDownloadDropdown } from "./MobileDownloadDropdown";
 import AppStoreButtons from "@/components/AppStoreButtons";
 
 // ============================================
@@ -183,7 +184,14 @@ export default async function SharedOutfitPage({
               height={80}
             />
           </Link>
-          <AppStoreButtons size="sm" className="gap-2" />
+          {/* Mobile: single "Download" button with a dropdown of store options.
+              Desktop (sm+): both store buttons inline. */}
+          <div className="sm:hidden">
+            <MobileDownloadDropdown />
+          </div>
+          <div className="hidden sm:block">
+            <AppStoreButtons size="sm" className="gap-2" />
+          </div>
         </div>
       </nav>
 
