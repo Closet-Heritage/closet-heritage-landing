@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Quote from "@/components/Quote";
 import HowItWorks from "@/components/HowItWorks";
+import TryItCallout from "@/components/TryItCallout";
 import Rediscover from "@/components/Rediscover";
 import Features from "@/components/Features";
 import BuiltForReal from "@/components/BuiltForReal";
@@ -21,6 +22,7 @@ export default function Home() {
           attribution="— Vivienne Westwood"
         />
         <HowItWorks />
+        <TryItCallout />
         <Rediscover />
         <Features />
         <BuiltForReal />
