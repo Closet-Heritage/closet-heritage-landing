@@ -140,3 +140,281 @@ html {
 .delay-4 { animation-delay: 0.4s; }
 .delay-5 { animation-delay: 0.5s; }
 .delay-6 { animation-delay: 0.6s; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Control panel — warm brand palette
+   Matches the Closet Heritage mobile app so the panel feels like
+   your own product, not a generic ops tool. Every panel page uses
+   these classes/vars so a future palette shift is a one-file edit.
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --ch-cream: #F9F6F2;
+  --ch-cream-elevated: #FDFAF6;
+  --ch-fg: #291A0C;
+  --ch-fg-2: #534538;
+  --ch-fg-3: #8B7C6E;
+  --ch-accent: #C4956A;
+  --ch-accent-dark: #8B6B47;
+  --ch-accent-tint: rgba(196, 149, 106, 0.10);
+  --ch-border: #E5DDD3;
+  --ch-border-strong: #D5C9B8;
+  --ch-danger: #CE1126;
+  --ch-danger-tint: rgba(206, 17, 38, 0.06);
+  --ch-warn: #B4680A;
+  --ch-warn-tint: rgba(180, 104, 10, 0.08);
+  --ch-success: #0F6D3D;
+  --ch-success-tint: rgba(15, 109, 61, 0.08);
+  --ch-sidebar-bg: #1A0F08;
+  --ch-sidebar-bg-hover: #241610;
+  --ch-sidebar-fg: #F5E9DD;
+  --ch-sidebar-fg-muted: #C4B3A0;
+  --ch-sidebar-border: rgba(245, 233, 221, 0.08);
+}
+
+/* The .ch-panel root wraps every /control page — sets the warm surface bg. */
+.ch-panel {
+  background: var(--ch-cream);
+  color: var(--ch-fg);
+  min-height: 100vh;
+}
+.ch-panel h1, .ch-panel h2, .ch-panel h3 {
+  letter-spacing: -0.015em;
+}
+
+/* Standardized card surface. */
+.ch-card {
+  background: #FFFFFF;
+  border: 1px solid var(--ch-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.ch-card--elevated { background: var(--ch-cream-elevated); }
+
+/* Standard buttons — boxy, brand-matched. */
+.ch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: background 120ms ease, color 120ms ease, border 120ms ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.ch-btn--primary { background: var(--ch-fg); color: #FDFAF6; }
+.ch-btn--primary:hover { background: #1A0F08; }
+.ch-btn--secondary { background: #FFFFFF; color: var(--ch-fg); border-color: var(--ch-border); }
+.ch-btn--secondary:hover { border-color: var(--ch-border-strong); }
+.ch-btn--danger { background: var(--ch-danger); color: #FFFFFF; }
+.ch-btn--danger:hover:not(:disabled) { background: #A50E1E; }
+/* Danger buttons need a distinct disabled state — plain opacity:0.5 dropped
+   contrast on white-on-red to ~2.4:1 (WCAG fail). Warm pale-danger reads. */
+.ch-btn--danger:disabled { background: #E8B7BE; color: #FFFFFF; opacity: 1; cursor: not-allowed; }
+.ch-btn--ghost { background: transparent; color: var(--ch-fg-2); }
+.ch-btn--ghost:hover:not(:disabled) { background: var(--ch-accent-tint); color: var(--ch-accent-dark); }
+.ch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ch-btn--danger:disabled { opacity: 1; }  /* re-override the base disabled */
+
+.ch-muted { color: var(--ch-fg-3); }
+.ch-soft { color: var(--ch-fg-2); }
+.ch-kbd {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  background: var(--ch-accent-tint);
+  color: var(--ch-accent-dark);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+}
+
+/* Status pills — used across payments, subs, reports, batches. */
+.ch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.ch-pill--ok { background: var(--ch-success-tint); color: var(--ch-success); }
+.ch-pill--warn { background: var(--ch-warn-tint); color: var(--ch-warn); }
+.ch-pill--danger { background: var(--ch-danger-tint); color: var(--ch-danger); }
+.ch-pill--muted { background: rgba(41, 26, 12, 0.05); color: var(--ch-fg-2); }
+.ch-pill--gold { background: var(--ch-accent-tint); color: var(--ch-accent-dark); }
+
+/* Standard input styling used by all panel forms. */
+.ch-input {
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid var(--ch-border);
+  background: #FFFFFF;
+  color: var(--ch-fg);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+  outline: none;
+}
+.ch-input:focus {
+  border-color: var(--ch-accent);
+  box-shadow: 0 0 0 3px var(--ch-accent-tint);
+}
+.ch-input::placeholder { color: var(--ch-fg-3); }
+.ch-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ch-fg-2);
+  margin-bottom: 0.35rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Control panel — docs prose styles
+   Applied to `<div class="docs-prose">` rendered from marked.
+   Warm palette matching the rest of the panel; keeps editorial feel
+   without the stark-black code block that used to break the vibe.
+   ═══════════════════════════════════════════════════════════════ */
+.docs-prose {
+  color: var(--ch-fg);
+  font-size: 15px;
+  line-height: 1.75;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+.docs-prose > * + * { margin-top: 1em; }
+
+.docs-prose h1, .docs-prose h2, .docs-prose h3, .docs-prose h4 {
+  color: var(--ch-fg);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  scroll-margin-top: 5rem;
+}
+.docs-prose h2 {
+  font-size: 22px;
+  margin-top: 2.5em;
+  padding-top: 1em;
+  border-top: 1px solid var(--ch-border);
+}
+.docs-prose h2:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+.docs-prose h3 { font-size: 17px; margin-top: 1.75em; color: var(--ch-fg); }
+.docs-prose h4 {
+  font-size: 14px;
+  margin-top: 1.5em;
+  color: var(--ch-fg-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.docs-prose p { color: var(--ch-fg-2); }
+.docs-prose strong { color: var(--ch-fg); font-weight: 700; }
+.docs-prose em { color: var(--ch-fg-2); font-style: italic; }
+
+.docs-prose a {
+  color: var(--ch-accent-dark);
+  text-decoration: underline;
+  text-decoration-color: rgba(139, 107, 71, 0.35);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 120ms ease;
+}
+.docs-prose a:hover {
+  color: var(--ch-accent-dark);
+  text-decoration-color: var(--ch-accent-dark);
+}
+
+.docs-prose ul, .docs-prose ol {
+  padding-left: 1.5em;
+  color: var(--ch-fg-2);
+}
+.docs-prose ul { list-style: disc; }
+.docs-prose ol { list-style: decimal; }
+.docs-prose ul li::marker { color: var(--ch-accent); }
+.docs-prose ol li::marker { color: var(--ch-accent-dark); font-weight: 600; }
+.docs-prose li { margin: 0.35em 0; }
+.docs-prose li > p { margin: 0.35em 0; }
+
+/* Inline code — warm parchment feel. */
+.docs-prose code {
+  background: var(--ch-accent-tint);
+  color: var(--ch-accent-dark);
+  padding: 0.12em 0.42em;
+  border-radius: 5px;
+  font-size: 0.87em;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* Code blocks — warm dark, matches sidebar. Rounded, framed. */
+.docs-prose pre {
+  background: var(--ch-sidebar-bg);
+  color: #F5E9DD;
+  padding: 1.1em 1.35em;
+  border-radius: 12px;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.7;
+  border: 1px solid rgba(196, 149, 106, 0.15);
+  box-shadow: 0 1px 2px rgba(41, 26, 12, 0.08);
+}
+.docs-prose pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  font-weight: 400;
+}
+
+.docs-prose blockquote {
+  border-left: 3px solid var(--ch-accent);
+  background: var(--ch-accent-tint);
+  padding: 0.9em 1.1em;
+  border-radius: 0 10px 10px 0;
+  color: var(--ch-fg-2);
+  font-style: italic;
+}
+.docs-prose blockquote p { color: inherit; }
+.docs-prose blockquote > *:first-child { margin-top: 0; }
+.docs-prose blockquote > *:last-child { margin-bottom: 0; }
+
+.docs-prose hr {
+  border: none;
+  border-top: 1px solid var(--ch-border);
+  margin: 2.5em 0;
+}
+
+/* Tables — warm cream head, hairline body. */
+.docs-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: #FFFFFF;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--ch-border);
+}
+.docs-prose thead {
+  background: var(--ch-cream);
+}
+.docs-prose th, .docs-prose td {
+  padding: 0.7em 1em;
+  text-align: left;
+  border-bottom: 1px solid var(--ch-border);
+}
+.docs-prose tbody tr:last-child td { border-bottom: none; }
+.docs-prose tbody tr:nth-child(even) { background: rgba(196, 149, 106, 0.03); }
+.docs-prose th {
+  font-weight: 700;
+  color: var(--ch-fg-2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.docs-prose td { color: var(--ch-fg-2); }
+.docs-prose td strong { color: var(--ch-fg); }

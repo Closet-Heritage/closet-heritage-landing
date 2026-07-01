@@ -29,6 +29,14 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // Vercel bundles only files that Next.js's file tracer detects as
+  // imports. Our docs are read at runtime via fs.readFile() and would
+  // therefore be silently omitted from the deployment, causing every
+  // /control/docs/* page to 404 in prod. Include them explicitly.
+  outputFileTracingIncludes: {
+    "/control/docs/**/*": ["./content/docs/**/*.md"],
+    "/control/docs": ["./content/docs/**/*.md"],
+  },
   async headers() {
     return [
       {

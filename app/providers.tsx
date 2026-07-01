@@ -10,9 +10,12 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-      capture_pageview: false, // We capture manually for Next.js route changes
-      capture_pageleave: true,
-      person_profiles: "always", // Creates person profiles for anonymous visitors (needed for World Map)
+      capture_pageview: false, // manual capture below
+      // Fire $pageleave only for pages we actually captured a $pageview on.
+      // The default `true` would leak /control/* pageleaves (with UUIDs in
+      // the URL) even after we skip $pageview for those routes.
+      capture_pageleave: "if_capture_pageview",
+      person_profiles: "always",
     });
   }, []);
 
@@ -32,6 +35,12 @@ function PostHogPageview() {
   const ph = usePostHog();
 
   useEffect(() => {
+    // Never emit $pageview from the internal /control panel. Those URLs
+    // contain user UUIDs (/control/users/<uuid>) and are ops surface, not
+    // product surface. capture_pageleave: 'if_capture_pageview' above
+    // ensures $pageleave also skips these routes.
+    if (pathname?.startsWith("/control")) return;
+
     if (pathname && ph) {
       let url = window.origin + pathname;
       if (searchParams.toString()) {
